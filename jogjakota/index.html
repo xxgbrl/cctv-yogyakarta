@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>CCTV Kota Yogyakarta – LIVE CCTV Yogyakarta</title>
+  <link rel="icon" href="../favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+      content="Pantauan kamera CCTV publik wilayah Kota Yogyakarta secara real-time dari berbagai titik jalan, fasilitas umum, dan area publik." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://xxgbrl.github.io/cctv-yogyakarta/jogjakota/" />
+
+  
+  
+  
+  
+
+  <!-- HLS -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <style>
+    /* =====================
+       BASE STYLE
+    ===================== */
+    body {
+      margin: 0;
+      background: #0b0b0b;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* =====================
+       SIDEBAR
+    ===================== */
+    .sidebar {
+      width: 360px;
+      background: #111;
+      border-right: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar h2 {
+      margin: 0;
+      padding: 12px;
+      background: #151515;
+      text-align: center;
+    }
+
+    .sidebar-header {
+      padding: 10px 14px;
+      background: #111;
+      border-bottom: 1px solid #222;
+    }
+
+    .back-home {
+      text-decoration: none;
+      color: #aaa;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+    }
+
+    .back-home:hover {
+      color: #fff;
+    }
+
+    #camList {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .cam-btn {
+      padding: 10px 12px;
+      border-bottom: 1px solid #1f1f1f;
+      cursor: pointer;
+    }
+
+    .cam-btn:hover {
+      background: #1f1f1f;
+    }
+
+    .cam-btn.active {
+      background: #2a2a2a;
+    }
+
+    /* =====================
+       SEARCH
+    ===================== */
+    #searchBox::placeholder {
+      color: #777;
+    }
+
+    /* =====================
+       PLAYER
+    ===================== */
+    .player {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-title {
+      padding: 12px;
+      background: #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .player-body {
+      flex: 1;
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .placeholder {
+      color: #777;
+    }
+
+    #closeBtn {
+      background: #222;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      display: none;
+    }
+
+    #closeBtn:hover {
+      background: #c0392b;
+    }
+
+    /* =====================
+       MOBILE MODE
+    ===================== */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: 100vh;
+        border-right: none;
+      }
+
+      .player {
+        position: fixed;
+        inset: 0;
+        background: black;
+        z-index: 999;
+        display: none;
+      }
+
+      .player.active {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <a href="https://xxgbrl.github.io/cctv-yogyakarta/" class="back-home">← Kembali ke Beranda</a>
+    </div>
+    <h2>DAFTAR CCTV</h2>
+
+    <!-- SEARCH -->
+    <div style="padding:10px;border-bottom:1px solid #222;display:flex;gap:6px">
+      <input
+        id="searchBox"
+        type="text"
+        placeholder="🔍 Cari kamera..."
+        style="
+          flex:1;
+          padding:8px 10px;
+          border-radius:6px;
+          border:1px solid #333;
+          background:#0b0b0b;
+          color:#fff;
+          outline:none;
+        "
+      />
+      <button
+        id="clearSearch"
+        title="Clear"
+        style="
+          padding:0 10px;
+          border-radius:6px;
+          border:1px solid #333;
+          background:#151515;
+          color:#fff;
+          cursor:pointer;
+          display:none;
+        "
+      >✖</button>
+    </div>
+
+    <div id="camList"></div>
+  </div>
+
+  <!-- PLAYER -->
+  <div class="player">
+    <div class="player-title">
+      <span id="playerTitle">Pilih kamera</span>
+      <button id="closeBtn" onclick="closePlayer()">✖</button>
+    </div>
+    <div class="player-body" id="playerBody">
+      <div class="placeholder">📷 Klik nama kamera</div>
+    </div>
+  </div>
+
+<script>
+/* =============================
+   RAW CCTV LINKS (KOTA YOGYA)
+============================= */
+const rawLinks = `
+https://cctvjss.jogjakota.go.id/atcs/ATCS_mirota.stream/chunklist_w1454554049.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_Pingit5.stream/chunklist_w17103602.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/NolKm_GdAgung.stream/chunklist_w1012111173.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/NolKm_Timur.stream/chunklist_w719085143.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_pkumuh.stream/chunklist_w265938445.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/NolKm_Utara.stream/chunklist_w1453579498.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_11_Terang_Bulan.stream/chunklist_w158902167.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari.stream/chunklist_w1045388032.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Atmosukarto.stream/chunklist_w848861425.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_2_Depan_Toko_Subur.stream/chunklist_w1873539700.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_7_Mall_Selatan.stream/chunklist_w1511294974.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_9_Mutiara_Baru.stream/chunklist_w1989499997.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari_PTZ.stream/chunklist_w733480922.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_3_Depan_Dispar.stream/chunklist_w1078046061.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_6_Mall_Utara.stream/chunklist_w1167204584.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Gramedia_2.stream/chunklist_w967363643.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_4_Depan_DPRD.stream/chunklist_w1775213999.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Demangan_View_Timur.stream/chunklist_w1623690273.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_gramedia.stream/chunklist_w514476728.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Mandala_Krida_PTZ.stream/chunklist_w1745765764.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_kmnol.stream/chunklist_w1381989250.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Balaikota_View_Timur.stream/chunklist_w1797179843.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Demangan_View_Utara.stream/chunklist_w454461359.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Demangan_View_Selatan.stream/chunklist_w1031266917.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Amongrogo_View_Timur.stream/chunklist_w283241605.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Balaikota_View_Utara.stream/chunklist_w630093568.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_UST.stream/chunklist_w1631331058.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Pasar_Demangan_View_Selatan.stream/chunklist_w800355762.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_gayam.stream/chunklist_w650513308.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_cendana.stream/chunklist_w1218156781.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_JoktengWetan.stream/chunklist_w1107434572.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_jopraban_3.stream/chunklist_w1100683924.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_ukdw.stream/chunklist_w298712937.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_jlagran.stream/chunklist_w1892447698.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_wirobrajan.stream/chunklist_w652268897.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_S4_Bausasran.stream/chunklist_w1479219258.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SugengJeroni1.stream/chunklist_w1245712693.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_PasarGading2.stream/chunklist_w1372491751.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SugengJeroni2.stream/chunklist_w314864107.m3u8
+https://cctvjss.jogjakota.go.id/balaikota/Balaikota_Utara_Balkot_V_Timur.stream/chunklist_w1224566321.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_KyaiMojo2.stream/chunklist_w1470020393.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Wirosaban_View_Selatan.stream/chunklist_w1141866373.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Wirosaban_View_Utara.stream/chunklist_w188374206.m3u8
+https://cctvjss.jogjakota.go.id/balaikota/Balaikota_Utara_Balkot_V_Gerbang_Masuk.stream/chunklist_w206593393.m3u8
+https://cctvjss.jogjakota.go.id/kecamatan/KemNG-Wahid_Hasyim_V_Selatan.stream/chunklist_w727930839.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_JatiKencana.stream/chunklist_w676173508.m3u8
+https://cctvjss.jogjakota.go.id/kecamatan/KemNG-Wahid_Hasyim_V_Utara.stream/chunklist_w1969585490.m3u8
+https://cctvjss.jogjakota.go.id/dprd-kota/depan-dprd-v-utara.stream/chunklist_w1222404002.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_21_Utara_Inna_Malioboro.stream/chunklist_w1136145446.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_10_Kepatihan.stream/chunklist_w82239602.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_23_Depan_BPD_Kepatihan.stream/chunklist_w467476271.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Jl-FM-Noto-Gardu-Aniem.stream/chunklist_w14431539.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Jl-Yos-Sudarso.stream/chunklist_w1624370185.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Wirosaban_View_Barat.stream/chunklist_w1785625709.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Jl-FM-Noto-Raminten.stream/chunklist_w668277660.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Jl-FM-Noto-McDonalds.stream/chunklist_w1589859286.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Jl-Wardhani.stream/chunklist_w1996781672.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Jl-Ahmad-Jazuli.stream/chunklist_w1825060733.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Simpang-Gramedia-V-Timur_Ex-Jl-Prau.stream/chunklist_w1456991215.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_22_Simpang_Pajeksan_Suryatmajan.stream/chunklist_w404002028.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_25_Utara_Mall.stream/chunklist_w1892078770.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Letjen_Suprapto_KS_Tubun_View_Selatan.stream/chunklist_w2008963515.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_Pingit2.stream/chunklist_w755515329.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Terban_View_Utara.stream/chunklist_w1549226803.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_2.stream/chunklist_w1833172622.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_klitren_2.stream/chunklist_w562589543.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_DeBritto_View_Utara.stream/chunklist_w668487201.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Letjen_Suprapto_KS_Tubun_View_Utara.stream/chunklist_w1348740130.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/Jl-Nyoman-Oka.stream/chunklist_w190824898.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Wirosaban_View_Timur.stream/chunklist_w504280293.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Utara-Timur_Gardena_Jl_Urip%20Sumoharjo_V_Timur.stream/chunklist_w1100804386.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Parkiran_Ngabean.stream/chunklist_w620140795.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_segoro_amarto_tegalrejo_2.stream/chunklist_w2100701949.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Terban_View_Timur.stream/chunklist_w10434705.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_Pingit3.stream/chunklist_w1284168629.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Gambiran_View_Barat.stream/chunklist_w1851976473.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Jogokariyan_View_Utara.stream/chunklist_w1853774940.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Karang_Tunggal_PTZ.stream/chunklist_w1370655890.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Terban_View_Barat.stream/chunklist_w1647505385.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_Pingit4.stream/chunklist_w276316107.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Pasar_Telo_View_Selatan.stream/chunklist_w192652032.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SopMerah2.stream/chunklist_w1897065768.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Rejowinangun_View_Timur.stream/chunklist_w789878975.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Borobudur_Plaza.stream/chunklist_w1307153993.m3u8
+https://cctvjss.jogjakota.go.id/margo-utomo/Wijaya-Baru-Travel.stream/chunklist_w1125758008.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_joktengwetan.stream/chunklist_w194609688.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_Pingit1.stream/chunklist_w1433104493.m3u8
+https://cctvjss.jogjakota.go.id/margo-utomo/Selatan-Olive.stream/chunklist_w722093033.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SopMerah1.stream/chunklist_w1977177808.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_KyaiMojo.stream/chunklist_w1291409140.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Gambiran_View_Timur.stream/chunklist_w2089161246.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_jogokaryan.stream/chunklist_w468123187.m3u8
+https://cctvjss.jogjakota.go.id/margo-utomo/Optic-Tugu.stream/chunklist_w1256602682.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/Jl-Juadi.stream/chunklist_w208759716.m3u8
+https://cctvjss.jogjakota.go.id/margo-utomo/Gowongan-Lor.stream/chunklist_w1664685447.m3u8
+https://cctvjss.jogjakota.go.id/margo-utomo/Toko-Cat-Wahyu.stream/chunklist_w1601831590.m3u8
+https://cctvjss.jogjakota.go.id/margo-utomo/Wisma-Ratih.stream/chunklist_w320338671.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_2.stream/chunklist_w220110157.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Pasar_Telo_View_Utara.stream/chunklist_w1454158434.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_brontokusuman_blkgKel_1.stream/chunklist_w53877884.m3u8
+https://cctvjss.jogjakota.go.id/kotabaru/Jl-Sajiono.stream/chunklist_w1404403547.m3u8
+https://cctvjss.jogjakota.go.id/dprd-kota/depan-dprd-v-selatan.stream/chunklist_w563872052.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Pasar_Telo_PTZ.stream/chunklist_w1460973395.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Basen.stream/chunklist_w1542859430.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_PasarGading1.stream/chunklist_w1256330777.m3u8
+https://cctvjss.jogjakota.go.id/kecamatan/KemMJ-TimurKemantren.stream/chunklist_w1745927634.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_brontokusuman_blkgKel_2.stream/chunklist_w1193338162.m3u8
+https://cctvjss.jogjakota.go.id/kecamatan/KemMJ-JalanSelatanKemantren.stream/chunklist_w507102028.m3u8
+https://cctvjss.jogjakota.go.id/kecamatan/KemMJ-PendopoKemantren.stream/chunklist_w1325554034.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Kleringan_Abu_Bakar_Ali.stream/chunklist_w762683283.m3u8
+https://cctvjss.jogjakota.go.id/balaikota/Balaikota_Gerbang_Masuk_Utara_View_Timur-Luar.stream/chunklist_w1320171183.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_jopraban_2.stream/chunklist_w1883417073.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_Gambiran2.stream/chunklist_w1381610015.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_2.stream/chunklist_w596478938.m3u8
+https://cctvjss.jogjakota.go.id/dprd-kota/depan-dprd-pos-security.stream/chunklist_w1193971864.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Galeria_TimurSelatan.stream/chunklist_w1287453460.m3u8
+https://cctvjss.jogjakota.go.id/bpbd/BPBD_gajahwong2.stream/chunklist_w1952954868.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_1.stream/chunklist_w1467549738.m3u8
+https://cctvjss.jogjakota.go.id/bpbd/BPBD_gajahwong1.stream/chunklist_w1220236579.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_sentul.stream/chunklist_w1449916358.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_apmd.stream/chunklist_w1025652947.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_bpk.stream/chunklist_w512934949.m3u8
+https://cctvjss.jogjakota.go.id/balaikota/Balaikota_Gerbang_Timur_PKK_View_Utara-Luar.stream/chunklist_w799005076.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_Gambiran1.stream/chunklist_w74620699.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_jopraban_1.stream/chunklist_w844261228.m3u8
+https://cctvjss.jogjakota.go.id/bpbd/BPBD_kaliwinongo.stream/chunklist_w314421138.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Tugu.stream/chunklist_w2091991147.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Mantrigawen_PTZ.stream/chunklist_w1612967689.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Balaikota_PTZ.stream/chunklist_w466719066.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_permata.stream/chunklist_w1993250308.m3u8
+https://cctvjss.jogjakota.go.id/balaikota/Balaikota_Gerbang_Timur_PKK_View_Selatan-Luar.stream/chunklist_w324125480.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Melia_Purosani.stream/chunklist_w1840001827.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_tamansari.stream/chunklist_w710184241.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_1.stream/chunklist_w911579424.m3u8
+https://cctvjss.jogjakota.go.id/malioboro/Malioboro_1_Selatan_Teteg.stream/chunklist_w1458158071.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Ibu_Ruswo.stream/chunklist_w742503690.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_tunjung.stream/chunklist_w2126410678.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_bumen.stream/chunklist_w393049921.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_tungkak.stream/chunklist_w2037429201.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_joktengkulon.stream/chunklist_w840454614.m3u8
+https://cctvjss.jogjakota.go.id/bpbd/BPBD_ngentak.stream/chunklist_w123586829.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_1.stream/chunklist_w1219372641.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_gajahwong_edupark_3.stream/chunklist_w1033740640.m3u8
+https://cctvjss.jogjakota.go.id/atcs/ATCS_Gedongkuning.stream/chunklist_w739258510.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_gajahwong_edupark_2.stream/chunklist_w592009447.m3u8
+https://cctvjss.jogjakota.go.id/rthp/rthp_gajahwong_edupark_1.stream/chunklist_w356485596.m3u8
+`;
+
+/* =============================
+   AUTO PARSE NAMA KAMERA
+============================= */
+const cameras = rawLinks
+  .split("\n")
+  .map(l => l.trim())
+  .filter(Boolean)
+  .map(url => {
+    const parts = url.split("/");
+    const folder = parts[parts.length - 2]; // xxxx.stream
+
+    const name = folder
+      .replace(".stream", "")
+      .replace(/_/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return { name, url };
+  })
+  .sort((a, b) =>
+    a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+  );
+
+/* =============================
+   ELEMENT REFERENCES
+============================= */
+const camList     = document.getElementById("camList");
+const playerBody  = document.getElementById("playerBody");
+const playerTitle = document.getElementById("playerTitle");
+const searchBox   = document.getElementById("searchBox");
+const clearBtn    = document.getElementById("clearSearch");
+
+let hls = null;
+let activeBtn = null;
+let currentCameraId = 0;
+
+/* =============================
+   PLAYER CONTROLS
+============================= */
+function stopPlayer() {
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+  playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera</div>';
+}
+
+function playCamera(cam, btn) {
+  const cameraId = ++currentCameraId;
+
+  if (activeBtn) activeBtn.classList.remove("active");
+  btn.classList.add("active");
+  activeBtn = btn;
+
+  stopPlayer();
+  playerTitle.textContent = cam.name;
+  document.querySelector(".player").classList.add("active");
+  document.getElementById("closeBtn").style.display = "inline-block";
+
+  const video = document.createElement("video");
+  video.autoplay = true;
+  video.muted = true;
+  video.controls = true;
+  video.playsInline = true;
+
+  playerBody.innerHTML = "";
+  playerBody.appendChild(video);
+
+  if (Hls.isSupported()) {
+    hls = new Hls({ lowLatencyMode: true, maxBufferLength: 10 });
+    hls.loadSource(cam.url);
+    hls.attachMedia(video);
+
+    hls.on(Hls.Events.ERROR, (e, d) => {
+      if (cameraId !== currentCameraId) return;
+      if (!d.fatal) return;
+
+      if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        hls.recoverMediaError();
+      } else {
+        setTimeout(() => {
+          if (cameraId === currentCameraId) playCamera(cam, btn);
+        }, 3000);
+      }
+    });
+  } else {
+    video.src = cam.url;
+  }
+}
+
+function closePlayer() {
+  currentCameraId++;
+
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+
+  if (activeBtn) {
+    activeBtn.classList.remove("active");
+    activeBtn = null;
+  }
+
+  playerTitle.textContent = "Pilih kamera";
+  document.getElementById("closeBtn").style.display = "none";
+  document.querySelector(".player").classList.remove("active");
+
+  playerBody.innerHTML =
+    '<div class="placeholder">📷 Klik nama kamera di kiri</div>';
+}
+
+/* =============================
+   RENDER LIST
+============================= */
+function renderCameraList(list) {
+  camList.innerHTML = "";
+  list.forEach(cam => {
+    const btn = document.createElement("div");
+    btn.className = "cam-btn";
+    btn.textContent = cam.name;
+    btn.onclick = () => playCamera(cam, btn);
+    camList.appendChild(btn);
+  });
+}
+
+renderCameraList(cameras);
+
+/* =============================
+   SEARCH HANDLER
+============================= */
+searchBox.addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  clearBtn.style.display = q ? "block" : "none";
+
+  renderCameraList(
+    cameras.filter(cam => cam.name.toLowerCase().includes(q))
+  );
+});
+
+clearBtn.addEventListener("click", () => {
+  searchBox.value = "";
+  clearBtn.style.display = "none";
+  renderCameraList(cameras);
+  searchBox.focus();
+});
+</script>
+
+</body>
+</html>
+

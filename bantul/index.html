@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>CCTV Kabupaten Bantul – LIVE CCTV Yogyakarta</title>
+  <link rel="icon" href="../favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+      content="Pantauan kamera CCTV publik wilayah Kabupaten Bantul secara real-time dari berbagai titik jalan, fasilitas umum, dan area publik." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://xxgbrl.github.io/cctv-yogyakarta/bantul/" />
+
+  
+  
+  
+  
+
+  <!-- HLS -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <style>
+    /* =====================
+       BASE STYLE
+    ===================== */
+    body {
+      margin: 0;
+      background: #0b0b0b;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* =====================
+       SIDEBAR
+    ===================== */
+    .sidebar {
+      width: 360px;
+      background: #111;
+      border-right: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar h2 {
+      margin: 0;
+      padding: 12px;
+      background: #151515;
+      text-align: center;
+    }
+
+    .sidebar-header {
+      padding: 10px 14px;
+      background: #111;
+      border-bottom: 1px solid #222;
+    }
+
+    .back-home {
+      text-decoration: none;
+      color: #aaa;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+    }
+
+    .back-home:hover {
+      color: #fff;
+    }
+
+    #camList {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .cam-btn {
+      padding: 10px 12px;
+      border-bottom: 1px solid #1f1f1f;
+      cursor: pointer;
+    }
+
+    .cam-btn:hover {
+      background: #1f1f1f;
+    }
+
+    .cam-btn.active {
+      background: #2a2a2a;
+    }
+
+    /* =====================
+       SEARCH
+    ===================== */
+    #searchBox::placeholder {
+      color: #777;
+    }
+
+    /* =====================
+       PLAYER
+    ===================== */
+    .player {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-title {
+      padding: 12px;
+      background: #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .player-body {
+      flex: 1;
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .placeholder {
+      color: #777;
+    }
+
+    #closeBtn {
+      background: #222;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      display: none;
+    }
+
+    #closeBtn:hover {
+      background: #c0392b;
+    }
+
+    /* =====================
+       MOBILE MODE
+    ===================== */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: 100vh;
+        border-right: none;
+      }
+
+      .player {
+        position: fixed;
+        inset: 0;
+        background: black;
+        z-index: 999;
+        display: none;
+      }
+
+      .player.active {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <a href="https://xxgbrl.github.io/cctv-yogyakarta/" class="back-home">← Kembali ke Beranda</a>
+    </div>
+    <h2>DAFTAR CCTV</h2>
+
+    <!-- SEARCH -->
+    <div style="padding:10px;border-bottom:1px solid #222;display:flex;gap:6px">
+      <input
+        id="searchBox"
+        type="text"
+        placeholder="🔍 Cari kamera..."
+        style="
+          flex:1;
+          padding:8px 10px;
+          border-radius:6px;
+          border:1px solid #333;
+          background:#0b0b0b;
+          color:#fff;
+          outline:none;
+        "
+      />
+      <button
+        id="clearSearch"
+        title="Clear"
+        style="
+          padding:0 10px;
+          border-radius:6px;
+          border:1px solid #333;
+          background:#151515;
+          color:#fff;
+          cursor:pointer;
+          display:none;
+        "
+      >✖</button>
+    </div>
+
+    <div id="camList"></div>
+  </div>
+
+  <!-- PLAYER -->
+  <div class="player">
+    <div class="player-title">
+      <span id="playerTitle">Pilih kamera</span>
+      <button id="closeBtn" onclick="closePlayer()">✖</button>
+    </div>
+    <div class="player-body" id="playerBody">
+      <div class="placeholder">📷 Klik nama kamera</div>
+    </div>
+  </div>
+
+<script>
+/* =============================
+   DATA CCTV (MANUAL)
+============================= */
+const cameras = [
+  { name: "Bendung Klegen", url: "https://stream.bantulkab.go.id/memfs/a293d997-0258-4317-ac84-0b1bc4abf14c_output_0.m3u8" },
+  { name: "Bendung Merdiko Niten", url: "https://stream.bantulkab.go.id/memfs/803b3df5-f009-4b2a-8984-be6618cf9f54_output_0.m3u8" },
+  { name: "Bundaran Srandakan", url: "https://stream.bantulkab.go.id/memfs/3685768a-94ea-4ac4-aef1-1a91dd1a3c1e_output_0.m3u8" },
+  { name: "Komplek Parasamya - Pintu Keluar", url: "https://stream.bantulkab.go.id/memfs/5c9050bc-995f-4024-93ce-4daf3ee87230_output_0.m3u8" },
+  { name: "Komplek Parasamya - Pintu Masuk", url: "https://stream.bantulkab.go.id/memfs/17a8f189-e12b-433a-8157-91a57e7035f5_output_0.m3u8" },
+  { name: "Makam Kotagede - Bangsal Dudo", url: "https://stream.bantulkab.go.id/memfs/39144c71-b7e0-42f9-8362-a33c669ee3f1_output_0.m3u8" },
+  { name: "Makam Kotagede - Halaman Masjid", url: "https://stream.bantulkab.go.id/memfs/d3b48e44-5438-4d8e-88b1-cbaa094e7a26_output_0.m3u8" },
+  { name: "Makam Kotagede - Kalurahan Jagalan", url: "https://stream.bantulkab.go.id/memfs/fabc5c97-17be-4c1b-93a2-fdf5b3bc03e1_output_0.m3u8" },
+  { name: "Makam Kotagede - Sendang", url: "https://stream.bantulkab.go.id/memfs/e09992bf-ce95-4fbf-baba-95a79dd722f2_output_0.m3u8" },
+  { name: "Makam Pajimatan Imogiri - Masjid", url: "https://stream.bantulkab.go.id/memfs/703d77ac-dbd0-47d9-9cec-ea9700e1287a_output_0.m3u8" },
+  { name: "Makam Pajimatan Imogiri - Tangga Atas", url: "https://stream.bantulkab.go.id/memfs/20870ab0-03fa-49f3-b499-382acc94a676_output_0.m3u8" },
+  { name: "Makam Pajimatan Imogiri - Tangga Tengah", url: "https://stream.bantulkab.go.id/memfs/d1c5cf69-703a-4db0-8bf1-bed3a6f144b2_output_0.m3u8" },
+  { name: "Makam Pajimatan Imogiri - Terminal View Selatan", url: "https://stream.bantulkab.go.id/memfs/96cf71a7-c6d6-4634-acf3-43dbc47ce84e_output_0.m3u8" },
+  { name: "Masjid Agung - Ruang Bermain 01", url: "https://stream.bantulkab.go.id/memfs/e7cc3b8e-74da-44e6-a6c9-783fe6e9cfd5_output_0.m3u8" },
+  { name: "Masjid Agung - Ruang Bermain 02", url: "https://stream.bantulkab.go.id/memfs/b3ac084f-c75c-45d4-a093-717e997cc478_output_0.m3u8" },
+  { name: "Masjid Agung - Ruang Bermain 03", url: "https://stream.bantulkab.go.id/memfs/d1bd78e1-0a23-4d08-a47f-84f9e1fae9ca_output_0.m3u8" },
+  { name: "Masjid Agung - Ruang Bermain 04", url: "https://stream.bantulkab.go.id/memfs/ac18010c-1051-4749-af35-03c3d18e0d5f_output_0.m3u8" },
+  { name: "Pasar Bantul", url: "https://stream.bantulkab.go.id/memfs/2acc430a-a201-43a4-bc2c-a98eef05f786_output_0.m3u8" },
+  { name: "Pemda II Manding - Depan DKPP View Selatan", url: "https://stream.bantulkab.go.id/memfs/08533b7c-8064-46fb-ae1b-9e6eff20a07b_output_0.m3u8" },
+  { name: "Pemda II Manding - Depan DKPP View Timur", url: "https://stream.bantulkab.go.id/memfs/9e86882f-b85e-4dc2-8c37-89f99ec1f1c3_output_0.m3u8" },
+  { name: "Pemda II Manding - Pintu Masuk Barat View Barat", url: "https://stream.bantulkab.go.id/memfs/8b495ebe-8433-4b5a-88a3-d9f509892318_output_0.m3u8" },
+  { name: "Pemda II Manding - Pintu Masuk Barat View Timur", url: "https://stream.bantulkab.go.id/memfs/53413cc5-c02e-441c-86f0-dda5f5ec8909_output_0.m3u8" },
+  { name: "Pemda II Manding - Pintu Masuk Timur View Barat", url: "https://stream.bantulkab.go.id/memfs/bc986e2c-f9be-4a7e-91e3-3d2eaca4a7d1_output_0.m3u8" },
+  { name: "Pemda II Manding - Pintu Masuk Timur View Timur", url: "https://stream.bantulkab.go.id/memfs/3aa8f60e-82e1-44eb-8183-84fa01f43818_output_0.m3u8" },
+  { name: "Simpang Gose View Barat Daya", url: "https://stream.bantulkab.go.id/memfs/6dffc8de-cd16-4caa-a161-1fed712ea8f8_output_0.m3u8" },
+  { name: "Simpang Gose View Tenggara", url: "https://stream.bantulkab.go.id/memfs/758afeb5-8281-4053-ba95-5c12d41ef3a1_output_0.m3u8" },
+  { name: "Simpang Gose View Timur Laut", url: "https://stream.bantulkab.go.id/memfs/0ab0421e-9bcd-4cea-8022-aef0d92e784f_output_0.m3u8" },
+  { name: "Simpang Jejeran View Selatan", url: "https://stream.bantulkab.go.id/memfs/5b08c057-2b07-4b17-a49e-40d1f58cc3b7_output_0.m3u8" },
+  { name: "Simpang Jejeran View Utara", url: "https://stream.bantulkab.go.id/memfs/b9a3b5ad-9404-43db-a91a-f369eeef511a_output_0.m3u8" },
+  { name: "Simpang Klodran View Barat", url: "https://stream.bantulkab.go.id/memfs/918ae1a2-4073-450c-9742-202f70cac18a_output_0.m3u8" },
+  { name: "Simpang Klodran View Selatan", url: "https://stream.bantulkab.go.id/memfs/d595eb28-2232-4eb5-936a-9508dac6a179_output_0.m3u8" },
+  { name: "Simpang Klodran View Utara", url: "https://stream.bantulkab.go.id/memfs/e53ccfe9-dc51-4e99-8106-d8aeca971f16_output_0.m3u8" },
+  { name: "Simpang Korpri View Barat", url: "https://stream.bantulkab.go.id/memfs/38fe6b1c-2563-4c03-bc81-6737c9e4b48c_output_0.m3u8" },
+  { name: "Simpang Korpri View Selatan", url: "https://stream.bantulkab.go.id/memfs/f33a4a0f-2746-408e-88ec-55c83b625b78_output_0.m3u8" },
+  { name: "Simpang Paseban View Barat", url: "https://stream.bantulkab.go.id/memfs/5de5699b-0227-44d8-99a4-bb513f8c2dbc_output_0.m3u8" },
+  { name: "Simpang Paseban View Selatan", url: "https://stream.bantulkab.go.id/memfs/d2728a49-8a62-4d02-903a-6467727853b5_output_0.m3u8" },
+  { name: "Simpang Paseban View Utara", url: "https://stream.bantulkab.go.id/memfs/c7bf64d5-9248-4cba-a944-c6ec425674d0_output_0.m3u8" },
+  { name: "Stadion Sultan Agung - Pintu Masuk", url: "https://stream.bantulkab.go.id/memfs/b7497d14-7eb8-4f17-97b5-efe710616c2c_output_0.m3u8" },
+  { name: "Stadion Sultan Agung - Timur Stadion View Barat", url: "https://stream.bantulkab.go.id/memfs/0ea9cc1a-743a-4cfe-b7ff-496917206924_output_0.m3u8" },
+  { name: "Stadion Sultan Agung - Timur Stadion View Timur", url: "https://stream.bantulkab.go.id/memfs/959e2ea1-9f3e-4263-8063-5be53f605429_output_0.m3u8" },
+  { name: "Tanjakan Cinomati", url: "https://stream.bantulkab.go.id/memfs/26db46a5-6347-4c2e-9c2e-be99e5a4eb09_output_0.m3u8" }
+];
+
+/* =============================
+   SORT A-Z
+============================= */
+cameras.sort((a, b) =>
+  a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+);
+
+/* =============================
+   ELEMENT REFERENCES
+============================= */
+const camList     = document.getElementById("camList");
+const playerBody  = document.getElementById("playerBody");
+const playerTitle = document.getElementById("playerTitle");
+const searchBox   = document.getElementById("searchBox");
+const clearBtn    = document.getElementById("clearSearch");
+
+let hls = null;
+let activeBtn = null;
+let currentCameraId = 0;
+
+/* =============================
+   PLAYER CONTROLS
+============================= */
+function stopPlayer() {
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+  playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera</div>';
+}
+
+function playCamera(cam, btn) {
+  const cameraId = ++currentCameraId;
+
+  if (activeBtn) activeBtn.classList.remove("active");
+  btn.classList.add("active");
+  activeBtn = btn;
+
+  stopPlayer();
+  playerTitle.textContent = cam.name;
+  document.querySelector(".player").classList.add("active");
+  document.getElementById("closeBtn").style.display = "inline-block";
+
+  const video = document.createElement("video");
+  video.autoplay = true;
+  video.muted = true;
+  video.controls = true;
+  video.playsInline = true;
+
+  playerBody.innerHTML = "";
+  playerBody.appendChild(video);
+
+  if (Hls.isSupported()) {
+    hls = new Hls({ lowLatencyMode: true, maxBufferLength: 10 });
+    hls.loadSource(cam.url);
+    hls.attachMedia(video);
+
+    hls.on(Hls.Events.ERROR, (e, d) => {
+      if (cameraId !== currentCameraId) return;
+      if (!d.fatal) return;
+
+      if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        hls.recoverMediaError();
+      } else {
+        setTimeout(() => {
+          if (cameraId === currentCameraId) playCamera(cam, btn);
+        }, 3000);
+      }
+    });
+  } else {
+    video.src = cam.url;
+  }
+}
+
+function closePlayer() {
+  currentCameraId++;
+
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+
+  if (activeBtn) {
+    activeBtn.classList.remove("active");
+    activeBtn = null;
+  }
+
+  playerTitle.textContent = "Pilih kamera";
+  document.getElementById("closeBtn").style.display = "none";
+  document.querySelector(".player").classList.remove("active");
+
+  playerBody.innerHTML =
+    '<div class="placeholder">📷 Klik nama kamera di kiri</div>';
+}
+
+/* =============================
+   RENDER LIST
+============================= */
+function renderCameraList(list) {
+  camList.innerHTML = "";
+  list.forEach(cam => {
+    const btn = document.createElement("div");
+    btn.className = "cam-btn";
+    btn.textContent = cam.name;
+    btn.onclick = () => playCamera(cam, btn);
+    camList.appendChild(btn);
+  });
+}
+
+renderCameraList(cameras);
+
+/* =============================
+   SEARCH HANDLER
+============================= */
+searchBox.addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  clearBtn.style.display = q ? "block" : "none";
+
+  renderCameraList(
+    cameras.filter(cam => cam.name.toLowerCase().includes(q))
+  );
+});
+
+clearBtn.addEventListener("click", () => {
+  searchBox.value = "";
+  clearBtn.style.display = "none";
+  renderCameraList(cameras);
+  searchBox.focus();
+});
+</script>
+
+</body>
+</html>
+

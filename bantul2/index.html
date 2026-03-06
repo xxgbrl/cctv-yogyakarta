@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>CCTV Kabupaten Bantul (Server 2) – LIVE CCTV Yogyakarta</title>
+  <link rel="icon" href="../favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+      content="Pantauan kamera CCTV publik wilayah Kabupaten Bantul melalui server alternatif (cadangan)." />
+  <link rel="canonical" href="https://xxgbrl.github.io/cctv-yogyakarta/bantul2/" />
+
+  
+  
+  
+  
+
+  <!-- HLS -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <style>
+    /* =====================
+       BASE STYLE
+    ===================== */
+    body {
+      margin: 0;
+      background: #0b0b0b;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* =====================
+       SIDEBAR
+    ===================== */
+    .sidebar {
+      width: 360px;
+      background: #111;
+      border-right: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar h2 {
+      margin: 0;
+      padding: 12px;
+      background: #151515;
+      text-align: center;
+    }
+
+    .sidebar-header {
+      padding: 10px 14px;
+      background: #111;
+      border-bottom: 1px solid #222;
+    }
+
+    .back-home {
+      text-decoration: none;
+      color: #aaa;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+    }
+
+    .back-home:hover {
+      color: #fff;
+    }
+
+    #camList {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .cam-btn {
+      padding: 10px 12px;
+      border-bottom: 1px solid #1f1f1f;
+      cursor: pointer;
+    }
+
+    .cam-btn:hover {
+      background: #1f1f1f;
+    }
+
+    .cam-btn.active {
+      background: #2a2a2a;
+    }
+
+    /* =====================
+       SEARCH
+    ===================== */
+    #searchBox::placeholder {
+      color: #777;
+    }
+
+    /* =====================
+       PLAYER
+    ===================== */
+    .player {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-title {
+      padding: 12px;
+      background: #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .player-body {
+      flex: 1;
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .placeholder {
+      color: #777;
+    }
+
+    #closeBtn {
+      background: #222;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      display: none;
+    }
+
+    #closeBtn:hover {
+      background: #c0392b;
+    }
+
+    /* =====================
+       MOBILE MODE
+    ===================== */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: 100vh;
+        border-right: none;
+      }
+
+      .player {
+        position: fixed;
+        inset: 0;
+        background: black;
+        z-index: 999;
+        display: none;
+      }
+
+      .player.active {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <a href="https://xxgbrl.github.io/cctv-yogyakarta/" class="back-home">← Kembali ke Beranda</a>
+    </div>
+    <h2>DAFTAR CCTV</h2>
+
+    <!-- SEARCH -->
+    <div style="padding:10px;border-bottom:1px solid #222;display:flex;gap:6px">
+      <input
+        id="searchBox"
+        type="text"
+        placeholder="🔍 Cari kamera..."
+        style="
+          flex:1;
+          padding:8px 10px;
+          border-radius:6px;
+          border:1px solid #333;
+          background:#0b0b0b;
+          color:#fff;
+          outline:none;
+        "
+      />
+      <button
+        id="clearSearch"
+        title="Clear"
+        style="
+          padding:0 10px;
+          border-radius:6px;
+          border:1px solid #333;
+          background:#151515;
+          color:#fff;
+          cursor:pointer;
+          display:none;
+        "
+      >✖</button>
+    </div>
+
+    <div id="camList"></div>
+  </div>
+
+  <!-- PLAYER -->
+  <div class="player">
+    <div class="player-title">
+      <span id="playerTitle">Pilih kamera</span>
+      <button id="closeBtn" onclick="closePlayer()">✖</button>
+    </div>
+    <div class="player-body" id="playerBody">
+      <div class="placeholder">📷 Klik nama kamera</div>
+    </div>
+  </div>
+
+<script>
+/* =============================
+   RAW CCTV LINKS
+============================= */
+const rawLinks = `
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/BunderanSrandakan.stream/chunklist_w1888802907.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewPandansari.stream/chunklist_w1516370053.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewParangtritis.stream/chunklist_w335566473.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Sedayu.stream/chunklist_w1822722959.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Pedes.stream/chunklist_w1770254096.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/SrandakanBarat.stream/chunklist_w893468346.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewMangunan.stream/chunklist_w1991548776.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/MakamImogiriViewParkirUtara.stream/chunklist_w13198068.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Manding.stream/chunklist_w622405876.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/MaduKismo.stream/chunklist_w1541656200.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Dongkelan2.stream/chunklist_w871580468.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Kasihan.stream/chunklist_w1013787984.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/DongkelanBarat.stream/chunklist_w729668808.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/BendungMerdikaNiten.stream/chunklist_w1662190147.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/PintuMasukStadionSultanAgung.stream/chunklist_w862401.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/TimurStadionSultanAgungBarat.stream/chunklist_w2074577958.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/TimurStadionSultanAgungTimur.stream/chunklist_w94075838.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangJejeranUtara.stream/chunklist_w1342073195.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Jejeran.stream/chunklist_w1698360164.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Piyungan_TC.stream/chunklist_w1598837822.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/KidsFun.stream/chunklist_w615907764.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/KotaGede.stream/chunklist_w1132823988.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangKlodranUtara.stream/chunklist_w1400699849.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangKlodranBarat.stream/chunklist_w303654327.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangKlodranSelatan.stream/chunklist_w558117085.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/RuangBermainRamahAnakMasjidAgung1.stream/chunklist_w38799904.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/RuangBermainRamahAnakMasjidAgung4.stream/chunklist_w10966238.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/RuangBermainRamahAnakMasjidAgung2.stream/chunklist_w941249311.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/RuangBermainRamahAnakMasjidAgung3.stream/chunklist_w748826785.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/PasarBantul.stream/chunklist_w1780452764.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangPasebanBarat.stream/chunklist_w541250678.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangPasebanUtara.stream/chunklist_w1607643006.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangPasebanSelatan.stream/chunklist_w1969188554.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangKorpriBarat.stream/chunklist_w1045866510.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangKorpriSelatan.stream/chunklist_w1314165670.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangGoseUtara.stream/chunklist_w599012706.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangGoseTimur.stream/chunklist_w273601681.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangGoseBarat.stream/chunklist_w2056483805.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/BlokO.stream/chunklist_w885133629.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/BlokOSelatan.stream/chunklist_w930718712.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/MakamImogiriSapitUrang.stream/chunklist_w972563121.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangJejeranSelatan.stream/chunklist_w949300824.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/MakamKotagedeParkiran.stream/chunklist_w751557722.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/MakamKotagedeMasjid.stream/chunklist_w974204183.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/BendungKlegen.stream/chunklist_w1343598590.m3u8
+`;
+
+/* =============================
+   PARSE & FORMAT CAMERA LIST
+============================= */
+const cameras = rawLinks
+  .split("\n")
+  .map(l => l.trim())
+  .filter(Boolean)
+  .map(url => {
+    const parts = url.split("/");
+    const rawName = parts[parts.length - 2];
+
+    const name = rawName
+      .replace(".stream", "")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/(\D)(\d+)/g, "$1 $2")
+      .trim();
+
+    return { name, url };
+  })
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+/* =============================
+   ELEMENT REFERENCES
+============================= */
+const camList     = document.getElementById("camList");
+const playerBody  = document.getElementById("playerBody");
+const playerTitle = document.getElementById("playerTitle");
+const searchBox   = document.getElementById("searchBox");
+const clearBtn    = document.getElementById("clearSearch");
+
+let hls = null;
+let activeBtn = null;
+let currentCameraId = 0;
+
+/* =============================
+   PLAYER CONTROLS
+============================= */
+function stopPlayer() {
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+  playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera</div>';
+}
+
+function playCamera(cam, btn) {
+  const cameraId = ++currentCameraId;
+
+  if (activeBtn) activeBtn.classList.remove("active");
+  btn.classList.add("active");
+  activeBtn = btn;
+
+  stopPlayer();
+  playerTitle.textContent = cam.name;
+  document.querySelector(".player").classList.add("active");
+  document.getElementById("closeBtn").style.display = "inline-block";
+
+  const video = document.createElement("video");
+  video.autoplay = true;
+  video.muted = true;
+  video.controls = true;
+  video.playsInline = true;
+
+  playerBody.innerHTML = "";
+  playerBody.appendChild(video);
+
+  if (Hls.isSupported()) {
+    hls = new Hls({ lowLatencyMode: true, maxBufferLength: 10 });
+    hls.loadSource(cam.url);
+    hls.attachMedia(video);
+
+    hls.on(Hls.Events.ERROR, (e, d) => {
+      if (cameraId !== currentCameraId) return;
+      if (!d.fatal) return;
+
+      if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        hls.recoverMediaError();
+      } else {
+        setTimeout(() => {
+          if (cameraId === currentCameraId) playCamera(cam, btn);
+        }, 3000);
+      }
+    });
+  } else {
+    video.src = cam.url;
+  }
+}
+
+function closePlayer() {
+  currentCameraId++;
+
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+
+  if (activeBtn) {
+    activeBtn.classList.remove("active");
+    activeBtn = null;
+  }
+
+  playerTitle.textContent = "Pilih kamera";
+  document.getElementById("closeBtn").style.display = "none";
+  document.querySelector(".player").classList.remove("active");
+
+  playerBody.innerHTML =
+    '<div class="placeholder">📷 Klik nama kamera di kiri</div>';
+}
+
+/* =============================
+   RENDER LIST
+============================= */
+function renderCameraList(list) {
+  camList.innerHTML = "";
+  list.forEach(cam => {
+    const btn = document.createElement("div");
+    btn.className = "cam-btn";
+    btn.textContent = cam.name;
+    btn.onclick = () => playCamera(cam, btn);
+    camList.appendChild(btn);
+  });
+}
+
+renderCameraList(cameras);
+
+/* =============================
+   SEARCH HANDLER
+============================= */
+searchBox.addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  clearBtn.style.display = q ? "block" : "none";
+
+  renderCameraList(
+    cameras.filter(cam => cam.name.toLowerCase().includes(q))
+  );
+});
+
+clearBtn.addEventListener("click", () => {
+  searchBox.value = "";
+  clearBtn.style.display = "none";
+  renderCameraList(cameras);
+  searchBox.focus();
+});
+</script>
+
+</body>
+</html>
+

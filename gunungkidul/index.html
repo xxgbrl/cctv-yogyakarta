@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>CCTV Kabupaten Gunungkidul – LIVE CCTV Yogyakarta</title>
+  <link rel="icon" href="../favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+      content="Pantauan kamera CCTV publik wilayah Kabupaten Gunungkidul secara real-time dari berbagai titik jalan, fasilitas umum, dan area publik." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://xxgbrl.github.io/cctv-yogyakarta/gunungkidul/" />
+
+  
+  
+  
+  
+
+  <!-- HLS -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <style>
+    /* =====================
+       BASE STYLE
+    ===================== */
+    body {
+      margin: 0;
+      background: #0b0b0b;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* =====================
+       SIDEBAR
+    ===================== */
+    .sidebar {
+      width: 360px;
+      background: #111;
+      border-right: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar h2 {
+      margin: 0;
+      padding: 12px;
+      background: #151515;
+      text-align: center;
+    }
+
+    .sidebar-header {
+      padding: 10px 14px;
+      background: #111;
+      border-bottom: 1px solid #222;
+    }
+
+    .back-home {
+      text-decoration: none;
+      color: #aaa;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+    }
+
+    .back-home:hover {
+      color: #fff;
+    }
+
+    #camList {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .cam-btn {
+      padding: 10px 12px;
+      border-bottom: 1px solid #1f1f1f;
+      cursor: pointer;
+    }
+
+    .cam-btn:hover {
+      background: #1f1f1f;
+    }
+
+    .cam-btn.active {
+      background: #2a2a2a;
+    }
+
+    /* =====================
+       SEARCH
+    ===================== */
+    #searchBox::placeholder {
+      color: #777;
+    }
+
+    /* =====================
+       PLAYER
+    ===================== */
+    .player {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-title {
+      padding: 12px;
+      background: #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .player-body {
+      flex: 1;
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .placeholder {
+      color: #777;
+    }
+
+    #closeBtn {
+      background: #222;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      display: none;
+    }
+
+    #closeBtn:hover {
+      background: #c0392b;
+    }
+
+    /* =====================
+       MOBILE MODE
+    ===================== */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: 100vh;
+        border-right: none;
+      }
+
+      .player {
+        position: fixed;
+        inset: 0;
+        background: black;
+        z-index: 999;
+        display: none;
+      }
+
+      .player.active {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <a href="https://xxgbrl.github.io/cctv-yogyakarta/" class="back-home">← Kembali ke Beranda</a>
+    </div>
+    <h2>DAFTAR CCTV</h2>
+
+    <!-- SEARCH -->
+    <div style="padding:10px;border-bottom:1px solid #222;display:flex;gap:6px">
+      <input
+        id="searchBox"
+        type="text"
+        placeholder="🔍 Cari kamera..."
+        style="
+          flex:1;
+          padding:8px 10px;
+          border-radius:6px;
+          border:1px solid #333;
+          background:#0b0b0b;
+          color:#fff;
+          outline:none;
+        "
+      />
+      <button
+        id="clearSearch"
+        title="Clear"
+        style="
+          padding:0 10px;
+          border-radius:6px;
+          border:1px solid #333;
+          background:#151515;
+          color:#fff;
+          cursor:pointer;
+          display:none;
+        "
+      >✖</button>
+    </div>
+
+    <div id="camList"></div>
+  </div>
+
+  <!-- PLAYER -->
+  <div class="player">
+    <div class="player-title">
+      <span id="playerTitle">Pilih kamera</span>
+      <button id="closeBtn" onclick="closePlayer()">✖</button>
+    </div>
+    <div class="player-body" id="playerBody">
+      <div class="placeholder">📷 Klik nama kamera</div>
+    </div>
+  </div>
+
+<script>
+/* =============================
+   DATA CCTV GUNUNGKIDUL
+============================= */
+const cameras = [
+  { name: "Tugu Selamat Datang Patuk 2 (Penghitung Kendaraan)", url: "https://stream.gunungkidulkab.go.id:8888/bdf1ba90-6e30-4d59-b36d-468dda946658/main_stream.m3u8" },
+  { name: "Playen Utara", url: "https://stream.gunungkidulkab.go.id:8888/c7bd7e2c-9bc0-405d-955e-930b836ff93e/main_stream.m3u8" },
+  { name: "Kapanawon Semin Selatan", url: "https://stream.gunungkidulkab.go.id:8888/b788631e-790a-4034-a021-d70223e93e56/main_stream.m3u8" },
+  { name: "Kapanewon Semin Utara", url: "https://stream.gunungkidulkab.go.id:8888/25a25318-0831-41ca-a84e-cb725af7a912/main_stream.m3u8" },
+  { name: "SMP 3 Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/f156c1d9-9381-45f5-a20f-cd323fb3a639/main_stream.m3u8" },
+  { name: "Bundaran PLN", url: "https://stream.gunungkidulkab.go.id:8888/ef7bc11d-8e05-4414-8e25-edeb78929cf0/main_stream.m3u8" },
+  { name: "Kapanewon Nglipar Barat", url: "https://stream.gunungkidulkab.go.id:8888/31de9dc7-dfaa-4274-b353-49d350e5b8d8/main_stream.m3u8" },
+  { name: "S4 Selang Timur", url: "https://stream.gunungkidulkab.go.id:8888/35d50759-f2c6-4f2b-a11e-7a94a6bcaa7c/main_stream.m3u8" },
+  { name: "TPR Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/f6314dd1-a8ea-40a9-8a97-e0f2f8dc4bdd/main_stream.m3u8" },
+  { name: "Pantai Kukup", url: "https://stream.gunungkidulkab.go.id:8888/53fa897a-dc59-435b-841b-ce544d559a20/main_stream.m3u8" },
+  { name: "Bundaran Kodim", url: "https://stream.gunungkidulkab.go.id:8888/e91760d5-95b8-4907-a49d-f46885390291/main_stream.m3u8" },
+  { name: "S4 Ngalang Timur", url: "https://stream.gunungkidulkab.go.id:8888/6d0d6159-4ddc-4ef6-a430-ee4ac9731e83/main_stream.m3u8" },
+  { name: "Kapanewon Nglipar Timur", url: "https://stream.gunungkidulkab.go.id:8888/5bb010f8-71fd-449c-99b2-294d35af77fd/main_stream.m3u8" },
+  { name: "S3 Gading Selatan", url: "https://stream.gunungkidulkab.go.id:8888/c5bea4c6-a2e4-4c9d-b731-ea5a1b5bd39c/main_stream.m3u8" },
+  { name: "S3 Gading Utara", url: "https://stream.gunungkidulkab.go.id:8888/c7bd7e2c-9bc0-405d-955e-930b836ff93e/main_stream.m3u8" },
+  { name: "S4 Munggi Barat", url: "https://stream.gunungkidulkab.go.id:8888/95e43424-6406-45d5-9ea8-6c137e40e9fa/main_stream.m3u8" },
+  { name: "Pertigaan Pasar Playen", url: "https://stream.gunungkidulkab.go.id:8888/3cdd4d3d-123f-4fdd-9600-5afce882d8e5/main_stream.m3u8" },
+  { name: "S4 Gading Selatan", url: "https://stream.gunungkidulkab.go.id:8888/1f8dbee5-c3d8-40a6-a377-6c8b547cb90a/main_stream.m3u8" },
+  { name: "Ngingrong Mulo", url: "https://stream.gunungkidulkab.go.id:8888/bbc05db8-09ae-44d1-a049-3d22bd18962b/main_stream.m3u8" },
+  { name: "Pantai Sepanjang Fix", url: "https://stream.gunungkidulkab.go.id:8888/f443272b-2eee-4df1-a2bc-14474a336e29/main_stream.m3u8" },
+  { name: "S3 Bunder", url: "https://stream.gunungkidulkab.go.id:8888/cdb69448-349b-460e-ac6c-545199e93599/main_stream.m3u8" },
+  { name: "S4 Ngalang Barat", url: "https://stream.gunungkidulkab.go.id:8888/ae3ead60-bed5-4f71-8613-bd4161d51aaf/main_stream.m3u8" },
+  { name: "SD Logantung 2 Semin", url: "https://stream.gunungkidulkab.go.id:8888/17d519d4-ba98-446e-bfe7-369372ac834b/main_stream.m3u8" },
+  { name: "Puskesmas Ngawen II", url: "https://stream.gunungkidulkab.go.id:8888/8193c0b3-0d34-43a1-9185-a534f6ffa303/main_stream.m3u8" },
+  { name: "Puskesmas Gedangsari II", url: "https://stream.gunungkidulkab.go.id:8888/7796317a-7669-4f52-b560-e1706a1825c9/main_stream.m3u8" },
+  { name: "Pertigaan SD Nanas", url: "https://stream.gunungkidulkab.go.id:8888/68e924c4-c94a-42e7-93ca-12b685c6513b/main_stream.m3u8" },
+  { name: "Pemda Gunungkidul", url: "https://stream.gunungkidulkab.go.id:8888/d41813e2-fafb-42a4-a7b9-5e713c0e9606/main_stream.m3u8" },
+  { name: "Kalurahan Sambirejo", url: "https://stream.gunungkidulkab.go.id:8888/a4bed595-2ed8-46f5-a802-fc450bdf67e9/main_stream.m3u8" },
+  { name: "Bundaran Siyono Barat", url: "https://stream.gunungkidulkab.go.id:8888/99b61615-0e73-4b44-b7d9-775301c11b94/main_stream.m3u8" },
+  { name: "S4 Munggi Timur", url: "https://stream.gunungkidulkab.go.id:8888/d1f423b6-2276-4dcf-ae65-f966a870a9e4/main_stream.m3u8" },
+  { name: "Bundaran Siyono Timur", url: "https://stream.gunungkidulkab.go.id:8888/365d3972-8e24-4b8e-a9bd-2db5cbcbfee8/main_stream.m3u8" },
+  { name: "Bundaran PLN PTZ", url: "https://stream.gunungkidulkab.go.id:8888/de774241-aaec-4937-a43a-ab59b7525dd0/main_stream.m3u8" },
+  { name: "Lapangan Pemda Barat", url: "https://stream.gunungkidulkab.go.id:8888/618a774c-186e-4ab2-9d9c-e4f59d09ab66/main_stream.m3u8" },
+  { name: "Puskesmas Patuk II", url: "https://stream.gunungkidulkab.go.id:8888/565f31f5-ca89-4db2-937b-dd33f9fb5102/main_stream.m3u8" },
+  { name: "Embung Batara Sriten", url: "https://stream.gunungkidulkab.go.id:8888/f15832eb-7d45-4800-b740-ade96dc7d94e/main_stream.m3u8" },
+  { name: "S3 Amigo", url: "https://stream.gunungkidulkab.go.id:8888/bf8e74bf-ab2e-4eda-8a59-f06a31f028e5/main_stream.m3u8" },
+  { name: "S3 DPRD", url: "https://stream.gunungkidulkab.go.id:8888/a4c43c14-cd50-4621-8f85-94086283e461/main_stream.m3u8" },
+  { name: "Taman Kota", url: "https://stream.gunungkidulkab.go.id:8888/93b13543-ed56-48dc-a6b2-b73c3fc8f29a/main_stream.m3u8" },
+  { name: "Kalurahan Nglanggeran 1", url: "https://stream.gunungkidulkab.go.id:8888/dab5e1b1-dc22-4162-8523-ada6a19585d9/main_stream.m3u8" },
+  { name: "Kalurahan Nglanggeran 2", url: "https://stream.gunungkidulkab.go.id:8888/a6091cbe-fbfc-401b-994b-258ba03b0387/main_stream.m3u8" },
+  { name: "Alun-Alun Wonosari PTZ", url: "https://stream.gunungkidulkab.go.id:8888/cd59b3ca-9f14-4660-96a6-2e65442c52a2/main_stream.m3u8" },
+  { name: "Bunderan Siyono PTZ", url: "https://stream.gunungkidulkab.go.id:8888/c02bf2b6-834c-4c9b-9be6-f2980d859bb8/main_stream.m3u8" },
+  { name: "Pantai Wediombo", url: "https://stream.gunungkidulkab.go.id:8888/3f008260-e48f-4dc2-bec4-93d7ec42dcb9/main_stream.m3u8" },
+  { name: "S4 Pancuran PTZ", url: "https://stream.gunungkidulkab.go.id:8888/d0e1549c-170b-499e-8dee-4ec2fef57f4d/main_stream.m3u8" },
+  { name: "SD Trowono 1", url: "https://stream.gunungkidulkab.go.id:8888/076df88c-ce65-47f4-8d4e-4872c430eee8/main_stream.m3u8" },
+  { name: "Bunderan Siyono Fix", url: "https://stream.gunungkidulkab.go.id:8888/447f180a-3aa6-41af-a905-4f5567b84f1b/main_stream.m3u8" },
+  { name: "Kalurahan Jetis - PTZ", url: "https://stream.gunungkidulkab.go.id:8888/61947637-427d-48ad-a59e-916edc063354/main_stream.m3u8" },
+  { name: "S4 RSUD PTZ", url: "https://stream.gunungkidulkab.go.id:8888/00817fc1-25e9-469f-a5c5-c371bdd55f07/main_stream.m3u8" },
+  { name: "S4 Gading Utara", url: "https://stream.gunungkidulkab.go.id:8888/ee587917-0cca-403d-855f-d8cee27721da/main_stream.m3u8" },
+  { name: "Pancuran FIX", url: "https://stream.gunungkidulkab.go.id:8888/e875884e-745b-4870-a9d6-bc8783dd43a5/main_stream.m3u8" },
+  { name: "Kelurahan Rejosari", url: "https://stream.gunungkidulkab.go.id:8888/a8b41e1f-51ae-4f3c-b61f-3d3485714fee/main_stream.m3u8" },
+  { name: "BPP Playen", url: "https://stream.gunungkidulkab.go.id:8888/40c44e72-0ef8-42b5-9410-8c88ad2d062d/main_stream.m3u8" },
+  { name: "S4 RSUD FIX", url: "https://stream.gunungkidulkab.go.id:8888/2b304ee7-49a4-4283-a64d-538de7fb6ad1/main_stream.m3u8" },
+  { name: "Kapanewon Saptosari 1", url: "https://stream.gunungkidulkab.go.id:8888/3fb627dc-e19a-4bc7-9e79-687487c840db/main_stream.m3u8" },
+  { name: "Alun-Alun Wonosari Fix", url: "https://stream.gunungkidulkab.go.id:8888/c066fe94-69d3-487b-990a-f0bdb24fa9e9/main_stream.m3u8" },
+  { name: "Pantai Kukup PTZ", url: "https://stream.gunungkidulkab.go.id:8888/dfdcfa82-c168-4265-abc8-f786bb7f0313/main_stream.m3u8" },
+  { name: "Embung Nglanggeran PTZ", url: "https://stream.gunungkidulkab.go.id:8888/1bea2c47-343d-408e-adf5-ad5eaf6faeec/main_stream.m3u8" },
+  { name: "S4 Selang Barat", url: "https://stream.gunungkidulkab.go.id:8888/6e214a3b-bc51-47c2-be71-3079b4155595/main_stream.m3u8" },
+  { name: "Tugu Selamat Datang Patuk 2", url: "https://stream.gunungkidulkab.go.id:8888/58328653-bae9-4e69-82d0-b83d500040b1/main_stream.m3u8" },
+  { name: "Parkiran Embung Nglanggeran", url: "https://stream.gunungkidulkab.go.id:8888/0386d0d8-c1a6-429a-9996-def5e2079644/main_stream.m3u8" },
+  { name: "Kapanewon Saptosari 2", url: "https://stream.gunungkidulkab.go.id:8888/41eefc1f-8388-47b2-9dc9-59d5e65b10d7/main_stream.m3u8" },
+  { name: "Kalurahan Jetis", url: "https://stream.gunungkidulkab.go.id:8888/6d5acbc9-33cf-4d3a-8671-a26933f1868d/main_stream.m3u8" },
+  { name: "Lapangan Kesatrian", url: "https://stream.gunungkidulkab.go.id:8888/1c2623b9-0382-4f33-b748-3941f4a96549/main_stream.m3u8" },
+  { name: "S4 Karangmojo Utara", url: "https://stream.gunungkidulkab.go.id:8888/80040ab9-0b70-4d40-991d-33e3850d4115/main_stream.m3u8" },
+  { name: "GOR Siyono", url: "https://stream.gunungkidulkab.go.id:8888/186ad348-fa92-4011-a296-4dfeae227a13/main_stream.m3u8" },
+  { name: "S3 Ngawen Timur", url: "https://stream.gunungkidulkab.go.id:8888/336476f5-2964-4c45-82d2-061b7fe984aa/main_stream.m3u8" },
+  { name: "SD Karangrejek 2", url: "https://stream.gunungkidulkab.go.id:8888/97561df3-c774-495a-b4d6-e5654108ac43/main_stream.m3u8" },
+  { name: "Kalurahan Getas", url: "https://stream.gunungkidulkab.go.id:8888/097ef287-a064-4730-8b65-0fdfad75f327/main_stream.m3u8" },
+  { name: "S3 Ngawen Barat", url: "https://stream.gunungkidulkab.go.id:8888/c410af7a-2790-4b8a-be66-d57e6a656e3c/main_stream.m3u8" },
+  { name: "Kapanewon Rongkop Timur", url: "https://stream.gunungkidulkab.go.id:8888/5bc413f9-0eae-4334-9b7b-e13bf155c8dd/main_stream.m3u8" },
+  { name: "S4 Karangmojo Barat", url: "https://stream.gunungkidulkab.go.id:8888/1a72b20b-83a2-44e3-b2cb-34754ec25d7d/main_stream.m3u8" },
+  { name: "Puskesmas Ponjong II", url: "https://stream.gunungkidulkab.go.id:8888/779effc1-f8a0-4287-b079-27e1d635ef97/main_stream.m3u8" },
+  { name: "Tugu Selamat Datang Patuk", url: "https://stream.gunungkidulkab.go.id:8888/472ac01d-84a3-40bd-b8a4-d7de2262f65b/main_stream.m3u8" },
+  { name: "SD Baran 2", url: "https://stream.gunungkidulkab.go.id:8888/18dd12e5-6f91-4ba9-8bec-3f25ddd5f68d/main_stream.m3u8" },
+  { name: "Pintu Masuk Baron Barat 2", url: "https://stream.gunungkidulkab.go.id:8888/c82d5519-9752-4281-8de3-451abab0dd86/main_stream.m3u8" },
+  { name: "Terminal Semin", url: "https://stream.gunungkidulkab.go.id:8888/f4e65d43-ff9a-4603-b035-b2bb778fc9d1/main_stream.m3u8" },
+  { name: "Pertigaan Pasar Playen PTZ", url: "https://stream.gunungkidulkab.go.id:8888/14d99ef0-eb77-4450-9fc9-eb7545a9ac16/main_stream.m3u8" },
+  { name: "SMP 2 Patuk Timur", url: "https://stream.gunungkidulkab.go.id:8888/e903344a-4303-4dbb-954c-1ba2eac82c10/main_stream.m3u8" },
+  { name: "TPR Pantai Baron 1", url: "https://stream.gunungkidulkab.go.id:8888/9582f7dc-118c-4e4d-a676-65f8f145d13e/main_stream.m3u8" },
+  { name: "SD Pucung", url: "https://stream.gunungkidulkab.go.id:8888/407a2a57-0202-4303-8314-114e635549c2/main_stream.m3u8" },
+  { name: "SMP 2 Patuk Barat", url: "https://stream.gunungkidulkab.go.id:8888/32588258-06cb-4628-987e-1f0748e6604e/main_stream.m3u8" },
+  { name: "S4 Gading Dome", url: "https://stream.gunungkidulkab.go.id:8888/af4d2a14-e0b3-43f4-ade8-d73465ef2258/main_stream.m3u8" },
+  { name: "Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/630843dd-4488-4360-8f86-b23f3e67980d/main_stream.m3u8" },
+  { name: "S4 Gading", url: "https://stream.gunungkidulkab.go.id:8888/e08a568b-111c-43ce-88bc-503f4a3cc348/main_stream.m3u8" },
+  { name: "Kapanewon Rongkop Barat", url: "https://stream.gunungkidulkab.go.id:8888/b344fc06-e8e9-40b2-ad80-d996918ec595/main_stream.m3u8" },
+  { name: "Pantai Wediombo Jalan", url: "https://stream.gunungkidulkab.go.id:8888/bf8bcf05-6d72-4109-b965-148422128c93/main_stream.m3u8" },
+  { name: "Kodim Gunungkidul", url: "https://stream.gunungkidulkab.go.id:8888/33edb24d-088c-4f49-ac90-f90a73a995ab/main_stream.m3u8" },
+  { name: "SD Trowono 3", url: "https://stream.gunungkidulkab.go.id:8888/0416e020-1e28-4066-aa3f-5083cdb4cdc2/main_stream.m3u8" },
+  { name: "SMP 1 Playen", url: "https://stream.gunungkidulkab.go.id:8888/c43d6c28-d03d-4aab-a589-7410b655908d/main_stream.m3u8" },
+  { name: "S4 Budegan Dome", url: "https://stream.gunungkidulkab.go.id:8888/0c5c5b2f-da35-49ca-ad54-037ad5339915/main_stream.m3u8" },
+  { name: "Puskeswan Putat", url: "https://stream.gunungkidulkab.go.id:8888/cec79cf1-852c-412a-b206-906b5daddbcc/main_stream.m3u8" },
+  { name: "Pasar Wotgalih", url: "https://stream.gunungkidulkab.go.id:8888/d7bca391-48f3-48d5-9744-ddf548c21ca4/main_stream.m3u8" },
+  { name: "Pintu Masuk Baron Barat 1", url: "https://stream.gunungkidulkab.go.id:8888/cb67a758-08c4-43b8-b5cc-23bc4b83829a/main_stream.m3u8" },
+  { name: "TPR Pantai Baron 2", url: "https://stream.gunungkidulkab.go.id:8888/9cca7e74-e0b0-49b1-9d62-effbb8589555/main_stream.m3u8" },
+  { name: "S4 Budegan Barat", url: "https://stream.gunungkidulkab.go.id:8888/d2bfd3f8-2969-47c1-a246-d5467a8e1efe/main_stream.m3u8" },
+  { name: "Pantai Sepanjang PTZ", url: "https://stream.gunungkidulkab.go.id:8888/194accd6-6fc8-4938-81c1-78206b1a0200/main_stream.m3u8" },
+  { name: "Pantai Drini", url: "https://stream.gunungkidulkab.go.id:8888/10aee277-d00f-45ee-b72d-c3c4962bc269/main_stream.m3u8" },
+  { name: "BPP Semanu Barat", url: "https://stream.gunungkidulkab.go.id:8888/27c0b2c4-a1bf-4ed9-95ca-9d88f046c754/main_stream.m3u8" },
+  { name: "BPP Semanu Timur", url: "https://stream.gunungkidulkab.go.id:8888/bc790186-e5cc-4552-80e2-b715305ee997/main_stream.m3u8" },
+  { name: "S4 Baleharjo Timur", url: "https://stream.gunungkidulkab.go.id:8888/b7c060ba-33c8-4609-8713-4f6e5ff35ba8/main_stream.m3u8" },
+  { name: "S4 Baleharjo Barat", url: "https://stream.gunungkidulkab.go.id:8888/f6878b5b-8100-449d-b4b5-ca48601a6256/main_stream.m3u8" },
+  { name: "S4 Budegan Timur", url: "https://stream.gunungkidulkab.go.id:8888/cc4a5a29-8266-4164-a764-e11d5de1004b/main_stream.m3u8" },
+  { name: "S4 Tegalsari Timur", url: "https://stream.gunungkidulkab.go.id:8888/438a6f5a-3713-40bb-ab87-29ad9f88a9fc/main_stream.m3u8" },
+  { name: "S4 Tegalsari Barat", url: "https://stream.gunungkidulkab.go.id:8888/be5bc47a-f583-4873-9e51-4a9b49ad5cf6/main_stream.m3u8" },
+  { name: "Kalurahan Planjan - Fix", url: "https://stream.gunungkidulkab.go.id:8888/5858ca16-f730-49d1-a494-9d20a82b9b55/main_stream.m3u8" },
+  { name: "Kalurahan Planjan - PTZ", url: "https://stream.gunungkidulkab.go.id:8888/d4ead1b7-f1ec-49be-8946-ee73987411d7/main_stream.m3u8" },
+  { name: "S4 Patuk", url: "https://stream.gunungkidulkab.go.id:8888/d237c46b-f15b-490c-869c-b5375df3a020/main_stream.m3u8" },
+  { name: "RTH 1 Patuk", url: "https://stream.gunungkidulkab.go.id:8888/a33d3b04-6512-497a-ac32-d512343842cc/main_stream.m3u8" },
+  { name: "RTH 2 Patuk", url: "https://stream.gunungkidulkab.go.id:8888/7ecb3678-fc9a-4d9a-9b71-d1716ab29c44/main_stream.m3u8" },
+  { name: "RTH 3 Patuk", url: "https://stream.gunungkidulkab.go.id:8888/e64fd9c3-5c73-4dc4-b2db-2ca7441b12c2/main_stream.m3u8" },
+  { name: "SMP 2 Paliyan", url: "https://stream.gunungkidulkab.go.id:8888/a7891cb1-d941-4974-94cd-de33ac5d84b0/main_stream.m3u8" },
+  { name: "S3 Kemadang", url: "https://stream.gunungkidulkab.go.id:8888/72f5464f-8741-4449-9727-c75db9a1169f/main_stream.m3u8" },
+  { name: "SMP 1 Tanjungsari", url: "https://stream.gunungkidulkab.go.id:8888/d15446f5-d59f-47f0-b6d6-5828c28dfc6b/main_stream.m3u8" },
+  { name: "Pasar Argosari", url: "https://stream.gunungkidulkab.go.id:8888/5b13c6d9-1295-4e5d-927a-ef546e433339/main_stream.m3u8" },
+  { name: "S4 Gading Timur", url: "https://stream.gunungkidulkab.go.id:8888/44fc679b-735d-44bc-a1f7-7db53ca30fac/main_stream.m3u8" },
+  { name: "S3 Petoyan 1", url: "https://stream.gunungkidulkab.go.id:8888/d7c5ae4e-2c50-4fc3-a57d-84950313fe6f/main_stream.m3u8" },
+  { name: "S3 Petoyan 2", url: "https://stream.gunungkidulkab.go.id:8888/9d1b9282-2953-4ef5-9d56-5593dc910093/main_stream.m3u8" },
+  { name: "Green Village Gedangsari", url: "https://stream.gunungkidulkab.go.id:8888/bc0a365b-3b87-4fca-8bb0-66af17678e4d/main_stream.m3u8" }
+];
+
+/* =============================
+   SORT A–Z
+============================= */
+cameras.sort((a, b) =>
+  a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+);
+
+/* =============================
+   ELEMENT REFERENCES
+============================= */
+const camList     = document.getElementById("camList");
+const playerBody  = document.getElementById("playerBody");
+const playerTitle = document.getElementById("playerTitle");
+const searchBox   = document.getElementById("searchBox");
+const clearBtn    = document.getElementById("clearSearch");
+
+let hls = null;
+let activeBtn = null;
+let currentCameraId = 0;
+
+/* =============================
+   PLAYER CONTROLS
+============================= */
+function stopPlayer() {
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+  playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera</div>';
+}
+
+function playCamera(cam, btn) {
+  const cameraId = ++currentCameraId;
+
+  if (activeBtn) activeBtn.classList.remove("active");
+  btn.classList.add("active");
+  activeBtn = btn;
+
+  stopPlayer();
+  playerTitle.textContent = cam.name;
+  document.querySelector(".player").classList.add("active");
+  document.getElementById("closeBtn").style.display = "inline-block";
+
+  const video = document.createElement("video");
+  video.autoplay = true;
+  video.muted = true;
+  video.controls = true;
+  video.playsInline = true;
+
+  playerBody.innerHTML = "";
+  playerBody.appendChild(video);
+
+  if (Hls.isSupported()) {
+    hls = new Hls({ lowLatencyMode: true, maxBufferLength: 10 });
+    hls.loadSource(cam.url);
+    hls.attachMedia(video);
+
+    hls.on(Hls.Events.ERROR, (e, d) => {
+      if (cameraId !== currentCameraId) return;
+      if (!d.fatal) return;
+
+      if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        hls.recoverMediaError();
+      } else {
+        setTimeout(() => {
+          if (cameraId === currentCameraId) playCamera(cam, btn);
+        }, 3000);
+      }
+    });
+  } else {
+    video.src = cam.url;
+  }
+}
+
+function closePlayer() {
+  currentCameraId++;
+
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+
+  if (activeBtn) {
+    activeBtn.classList.remove("active");
+    activeBtn = null;
+  }
+
+  playerTitle.textContent = "Pilih kamera";
+  document.getElementById("closeBtn").style.display = "none";
+  document.querySelector(".player").classList.remove("active");
+
+  playerBody.innerHTML =
+    '<div class="placeholder">📷 Klik nama kamera di kiri</div>';
+}
+
+/* =============================
+   RENDER LIST
+============================= */
+function renderCameraList(list) {
+  camList.innerHTML = "";
+  list.forEach(cam => {
+    const btn = document.createElement("div");
+    btn.className = "cam-btn";
+    btn.textContent = cam.name;
+    btn.onclick = () => playCamera(cam, btn);
+    camList.appendChild(btn);
+  });
+}
+
+renderCameraList(cameras);
+
+/* =============================
+   SEARCH HANDLER
+============================= */
+searchBox.addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  clearBtn.style.display = q ? "block" : "none";
+
+  renderCameraList(
+    cameras.filter(cam => cam.name.toLowerCase().includes(q))
+  );
+});
+
+clearBtn.addEventListener("click", () => {
+  searchBox.value = "";
+  clearBtn.style.display = "none";
+  renderCameraList(cameras);
+  searchBox.focus();
+});
+</script>
+
+</body>
+</html>
+

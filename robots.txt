@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://xxgbrl.github.io/cctv-yogyakarta/sitemap.xml
