@@ -14,7 +14,7 @@ Platform sederhana untuk memantau kamera CCTV publik di seluruh wilayah **Daerah
 | Kabupaten Bantul | ✅ bantulkab.go.id | ✅ cctv.jogjaprov.go.id |
 | Kabupaten Sleman | ✅ 24jam.slemankab.go.id | ✅ cctv.jogjaprov.go.id |
 | Kabupaten Kulon Progo | ❌ Belum tersedia | ✅ cctv.jogjaprov.go.id |
-| Kabupaten Gunungkidul | ✅ stream.gunungkidulkab.go.id | ✅ cctv.jogjaprov.go.id |
+| Kabupaten Gunungkidul | ✅ app-smartcity.gunungkidulkab.go.id | ✅ cctv.jogjaprov.go.id |
 
 ---
 
