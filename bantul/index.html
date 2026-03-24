@@ -10,11 +10,6 @@
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://xxgbrl.github.io/cctv-yogyakarta/bantul/" />
 
-  
-  
-  
-  
-
   <!-- HLS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
@@ -83,6 +78,10 @@
       padding: 10px 12px;
       border-bottom: 1px solid #1f1f1f;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .cam-btn:hover {
@@ -92,6 +91,23 @@
     .cam-btn.active {
       background: #2a2a2a;
     }
+
+    .cam-name {
+      flex: 1;
+    }
+
+    /* Status dot */
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #444;
+      transition: background 0.3s;
+    }
+
+    .status-dot.online  { background: #2ecc71; }
+    .status-dot.offline { background: #e74c3c; }
 
     /* =====================
        SEARCH
@@ -294,6 +310,34 @@ let hls = null;
 let activeBtn = null;
 let currentCameraId = 0;
 
+// Map url -> dot element (untuk update status)
+const dotMap = {};
+
+/* =============================
+   STATUS CHECK
+============================= */
+async function checkStatus(cam) {
+  try {
+    const res = await fetch(cam.url, { method: "HEAD", cache: "no-store" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function checkAllStatuses() {
+  // Cek semua kamera secara paralel
+  await Promise.all(cameras.map(async cam => {
+    const online = await checkStatus(cam);
+    const dot = dotMap[cam.url];
+    if (dot) {
+      dot.classList.remove("online", "offline");
+      dot.classList.add(online ? "online" : "offline");
+      dot.title = online ? "Kamera aktif" : "Kamera tidak aktif";
+    }
+  }));
+}
+
 /* =============================
    PLAYER CONTROLS
 ============================= */
@@ -377,13 +421,32 @@ function renderCameraList(list) {
   list.forEach(cam => {
     const btn = document.createElement("div");
     btn.className = "cam-btn";
-    btn.textContent = cam.name;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "cam-name";
+    nameSpan.textContent = cam.name;
+
+    const dot = document.createElement("span");
+    dot.className = "status-dot";
+    dot.title = "Mengecek...";
+
+    // Simpan referensi dot berdasarkan URL
+    dotMap[cam.url] = dot;
+
+    btn.appendChild(nameSpan);
+    btn.appendChild(dot);
     btn.onclick = () => playCamera(cam, btn);
     camList.appendChild(btn);
   });
 }
 
 renderCameraList(cameras);
+
+// Cek status setelah list dirender
+checkAllStatuses();
+
+// Refresh status setiap 2 menit
+setInterval(checkAllStatuses, 2 * 60 * 1000);
 
 /* =============================
    SEARCH HANDLER
@@ -407,4 +470,3 @@ clearBtn.addEventListener("click", () => {
 
 </body>
 </html>
-
