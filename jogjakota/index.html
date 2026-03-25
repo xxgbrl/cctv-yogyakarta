@@ -10,18 +10,10 @@
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://xxgbrl.github.io/cctv-yogyakarta/jogjakota/" />
 
-  
-  
-  
-  
-
   <!-- HLS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
   <style>
-    /* =====================
-       BASE STYLE
-    ===================== */
     body {
       margin: 0;
       background: #0b0b0b;
@@ -31,14 +23,8 @@
       height: 100vh;
     }
 
-    video {
-      width: 100%;
-      height: 100%;
-    }
+    video { width: 100%; height: 100%; }
 
-    /* =====================
-       SIDEBAR
-    ===================== */
     .sidebar {
       width: 360px;
       background: #111;
@@ -70,39 +56,39 @@
       transition: color 0.15s;
     }
 
-    .back-home:hover {
-      color: #fff;
-    }
+    .back-home:hover { color: #fff; }
 
-    #camList {
-      flex: 1;
-      overflow-y: auto;
-    }
+    #camList { flex: 1; overflow-y: auto; }
 
     .cam-btn {
       padding: 10px 12px;
       border-bottom: 1px solid #1f1f1f;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
-    .cam-btn:hover {
-      background: #1f1f1f;
+    .cam-btn:hover  { background: #1f1f1f; }
+    .cam-btn.active { background: #2a2a2a; }
+
+    .cam-name { flex: 1; }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #444;
+      transition: background 0.3s;
     }
 
-    .cam-btn.active {
-      background: #2a2a2a;
-    }
+    .status-dot.online  { background: #2ecc71; }
+    .status-dot.offline { background: #e74c3c; }
 
-    /* =====================
-       SEARCH
-    ===================== */
-    #searchBox::placeholder {
-      color: #777;
-    }
+    #searchBox::placeholder { color: #777; }
 
-    /* =====================
-       PLAYER
-    ===================== */
     .player {
       flex: 1;
       display: flex;
@@ -125,9 +111,7 @@
       justify-content: center;
     }
 
-    .placeholder {
-      color: #777;
-    }
+    .placeholder { color: #777; }
 
     #closeBtn {
       background: #222;
@@ -139,17 +123,10 @@
       display: none;
     }
 
-    #closeBtn:hover {
-      background: #c0392b;
-    }
+    #closeBtn:hover { background: #c0392b; }
 
-    /* =====================
-       MOBILE MODE
-    ===================== */
     @media (max-width: 768px) {
-      body {
-        flex-direction: column;
-      }
+      body { flex-direction: column; }
 
       .sidebar {
         width: 100%;
@@ -165,57 +142,36 @@
         display: none;
       }
 
-      .player.active {
-        display: flex;
-      }
+      .player.active { display: flex; }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-header">
       <a href="https://xxgbrl.github.io/cctv-yogyakarta/" class="back-home">← Kembali ke Beranda</a>
     </div>
     <h2>DAFTAR CCTV</h2>
 
-    <!-- SEARCH -->
     <div style="padding:10px;border-bottom:1px solid #222;display:flex;gap:6px">
       <input
         id="searchBox"
         type="text"
         placeholder="🔍 Cari kamera..."
-        style="
-          flex:1;
-          padding:8px 10px;
-          border-radius:6px;
-          border:1px solid #333;
-          background:#0b0b0b;
-          color:#fff;
-          outline:none;
-        "
+        style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid #333;background:#0b0b0b;color:#fff;outline:none;"
       />
       <button
         id="clearSearch"
         title="Clear"
-        style="
-          padding:0 10px;
-          border-radius:6px;
-          border:1px solid #333;
-          background:#151515;
-          color:#fff;
-          cursor:pointer;
-          display:none;
-        "
+        style="padding:0 10px;border-radius:6px;border:1px solid #333;background:#151515;color:#fff;cursor:pointer;display:none;"
       >✖</button>
     </div>
 
     <div id="camList"></div>
   </div>
 
-  <!-- PLAYER -->
   <div class="player">
     <div class="player-title">
       <span id="playerTitle">Pilih kamera</span>
@@ -227,9 +183,6 @@
   </div>
 
 <script>
-/* =============================
-   RAW CCTV LINKS (KOTA YOGYA)
-============================= */
 const rawLinks = `
 https://cctvjss.jogjakota.go.id/atcs/ATCS_apmd.stream/playlist.m3u8
 https://cctvjss.jogjakota.go.id/atcs/ATCS_jlagran.stream/playlist.m3u8
@@ -384,32 +337,22 @@ https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Simpang-Gramedia-V-Timur_Ex-Jl-Pra
 https://cctvjss.jogjakota.go.id/atcs/ATCS_Mantrigawen_PTZ.stream/playlist.m3u8
 `;
 
-/* =============================
-   AUTO PARSE NAMA KAMERA
-============================= */
 const cameras = rawLinks
   .split("\n")
   .map(l => l.trim())
   .filter(Boolean)
   .map(url => {
     const parts = url.split("/");
-    const folder = parts[parts.length - 2]; // xxxx.stream
-
+    const folder = parts[parts.length - 2];
     const name = folder
       .replace(".stream", "")
       .replace(/_/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-
     return { name, url };
   })
-  .sort((a, b) =>
-    a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-  );
+  .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
-/* =============================
-   ELEMENT REFERENCES
-============================= */
 const camList     = document.getElementById("camList");
 const playerBody  = document.getElementById("playerBody");
 const playerTitle = document.getElementById("playerTitle");
@@ -419,25 +362,39 @@ const clearBtn    = document.getElementById("clearSearch");
 let hls = null;
 let activeBtn = null;
 let currentCameraId = 0;
+const dotMap = {};
 
-/* =============================
-   PLAYER CONTROLS
-============================= */
-function stopPlayer() {
-  if (hls) {
-    hls.destroy();
-    hls = null;
+async function checkStatus(cam) {
+  try {
+    const res = await fetch(cam.url, { method: "HEAD", cache: "no-store" });
+    return res.ok;
+  } catch {
+    return false;
   }
+}
+
+async function checkAllStatuses() {
+  await Promise.all(cameras.map(async cam => {
+    const online = await checkStatus(cam);
+    const dot = dotMap[cam.url];
+    if (dot) {
+      dot.classList.remove("online", "offline");
+      dot.classList.add(online ? "online" : "offline");
+      dot.title = online ? "Kamera aktif" : "Kamera tidak aktif";
+    }
+  }));
+}
+
+function stopPlayer() {
+  if (hls) { hls.destroy(); hls = null; }
   playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera</div>';
 }
 
 function playCamera(cam, btn) {
   const cameraId = ++currentCameraId;
-
   if (activeBtn) activeBtn.classList.remove("active");
   btn.classList.add("active");
   activeBtn = btn;
-
   stopPlayer();
   playerTitle.textContent = cam.name;
   document.querySelector(".player").classList.add("active");
@@ -448,7 +405,6 @@ function playCamera(cam, btn) {
   video.muted = true;
   video.controls = true;
   video.playsInline = true;
-
   playerBody.innerHTML = "";
   playerBody.appendChild(video);
 
@@ -456,17 +412,13 @@ function playCamera(cam, btn) {
     hls = new Hls({ lowLatencyMode: true, maxBufferLength: 10 });
     hls.loadSource(cam.url);
     hls.attachMedia(video);
-
     hls.on(Hls.Events.ERROR, (e, d) => {
       if (cameraId !== currentCameraId) return;
       if (!d.fatal) return;
-
       if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
         hls.recoverMediaError();
       } else {
-        setTimeout(() => {
-          if (cameraId === currentCameraId) playCamera(cam, btn);
-        }, 3000);
+        setTimeout(() => { if (cameraId === currentCameraId) playCamera(cam, btn); }, 3000);
       }
     });
   } else {
@@ -476,51 +428,44 @@ function playCamera(cam, btn) {
 
 function closePlayer() {
   currentCameraId++;
-
-  if (hls) {
-    hls.destroy();
-    hls = null;
-  }
-
-  if (activeBtn) {
-    activeBtn.classList.remove("active");
-    activeBtn = null;
-  }
-
+  if (hls) { hls.destroy(); hls = null; }
+  if (activeBtn) { activeBtn.classList.remove("active"); activeBtn = null; }
   playerTitle.textContent = "Pilih kamera";
   document.getElementById("closeBtn").style.display = "none";
   document.querySelector(".player").classList.remove("active");
-
-  playerBody.innerHTML =
-    '<div class="placeholder">📷 Klik nama kamera di kiri</div>';
+  playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera di kiri</div>';
 }
 
-/* =============================
-   RENDER LIST
-============================= */
 function renderCameraList(list) {
   camList.innerHTML = "";
   list.forEach(cam => {
     const btn = document.createElement("div");
     btn.className = "cam-btn";
-    btn.textContent = cam.name;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "cam-name";
+    nameSpan.textContent = cam.name;
+
+    const dot = document.createElement("span");
+    dot.className = "status-dot";
+    dot.title = "Mengecek...";
+    dotMap[cam.url] = dot;
+
+    btn.appendChild(nameSpan);
+    btn.appendChild(dot);
     btn.onclick = () => playCamera(cam, btn);
     camList.appendChild(btn);
   });
 }
 
 renderCameraList(cameras);
+checkAllStatuses();
+setInterval(checkAllStatuses, 2 * 60 * 1000);
 
-/* =============================
-   SEARCH HANDLER
-============================= */
 searchBox.addEventListener("input", e => {
   const q = e.target.value.toLowerCase();
   clearBtn.style.display = q ? "block" : "none";
-
-  renderCameraList(
-    cameras.filter(cam => cam.name.toLowerCase().includes(q))
-  );
+  renderCameraList(cameras.filter(cam => cam.name.toLowerCase().includes(q)));
 });
 
 clearBtn.addEventListener("click", () => {
@@ -533,4 +478,3 @@ clearBtn.addEventListener("click", () => {
 
 </body>
 </html>
-
