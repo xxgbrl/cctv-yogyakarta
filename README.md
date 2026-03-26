@@ -74,4 +74,4 @@ Konten video CCTV adalah milik masing-masing instansi pemerintah penyedia dan ti
 
 ---
 
-*Dibuat untuk memudahkan masyarakat memantau kondisi Yogyakarta secara real-time.*
+*Platform ini dibuat untuk memudahkan masyarakat dalam memantau kondisi Daerah Istimewa Yogyakarta secara real-time.*
