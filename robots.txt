@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://cctv.nezuka.net/sitemap.xml
+Sitemap: https://xxgbrl.github.io/cctv-yogyakarta/sitemap.xml
