@@ -431,6 +431,18 @@ clearBtn.addEventListener("click", () => {
   renderCameraList(cameras);
   searchBox.focus();
 });
+
+  (function () {
+    var NAMESPACE   = "cctv-jogja-xxgbrl";
+    var KEY         = "total-hits";
+    var API         = "https://countapi.mileshilliard.com/api/v1";
+    var SESSION_KEY = "vc_visited";
+
+    if (!sessionStorage.getItem(SESSION_KEY)) {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      fetch(API + "/hit/" + NAMESPACE + "_" + KEY);
+    }
+  })();
 </script>
 
 </body>
