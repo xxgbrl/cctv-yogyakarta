@@ -2,42 +2,31 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-
   <title>LIVE CCTV Yogyakarta – Pantau CCTV Publik Yogyakarta</title>
   <link rel="icon" href="favicon.ico" />
 
-  <meta name="description"
-        content="LIVE CCTV Yogyakarta menyediakan akses pemantauan kamera CCTV publik di wilayah Daerah Istimewa Yogyakarta secara real-time dari berbagai sumber resmi." />
+  <meta name="description" content="LIVE CCTV Yogyakarta menyediakan akses pemantauan kamera CCTV publik di wilayah Daerah Istimewa Yogyakarta secara real-time dari berbagai sumber resmi." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="index, follow" />
   <meta name="google-site-verification" content="fxeYnmsJyagtznid2yG1yklc6yabMaVNQWoX0_IH2xs" />
-  <meta name="keywords" content=" cctv, jogja, yogyakarta, cctv jogja, pantau jogja, lalu lintas jogja, cuaca jogja, wisata jogja">
+  <meta name="keywords" content="cctv, jogja, yogyakarta, cctv jogja, pantau jogja, lalu lintas jogja, cuaca jogja, wisata jogja" />
   <link rel="canonical" href="https://xxgbrl.github.io/cctv-yogyakarta/" />
 
-  <!-- OPEN GRAPH (optional but recommended) -->
   <meta property="og:title" content="LIVE CCTV Yogyakarta" />
-  <meta property="og:description"
-        content="Pantau kamera CCTV publik di wilayah Yogyakarta secara real-time dari berbagai sumber resmi." />
+  <meta property="og:description" content="Pantau kamera CCTV publik di wilayah Yogyakarta secara real-time dari berbagai sumber resmi." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://xxgbrl.github.io/cctv-yogyakarta/" />
 
-  
-  
-  
-  
-
   <style>
-    /* =========================
-       ROOT & RESET
-    ========================= */
+    /* === ROOT & RESET === */
     :root {
-      --bg: #0b0b0b;
-      --card: #151515;
+      --bg:         #0b0b0b;
+      --card:       #151515;
       --card-hover: #1f1f1f;
-      --border: #222;
-      --text: #ffffff;
-      --muted: #9a9a9a;
-      --badge: #2a2a2a;
+      --border:     #222;
+      --text:       #ffffff;
+      --muted:      #9a9a9a;
+      --badge:      #2a2a2a;
     }
 
     * {
@@ -48,16 +37,13 @@
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh;
       display: flex;
       justify-content: center;
     }
 
-    /* =========================
-       LAYOUT
-    ========================= */
+    /* === LAYOUT === */
     .container {
       width: 100%;
       max-width: 720px;
@@ -77,9 +63,7 @@
       margin-bottom: 28px;
     }
 
-    /* =========================
-       REGION BLOCK
-    ========================= */
+    /* === REGION === */
     .region-row {
       margin-bottom: 30px;
     }
@@ -93,18 +77,14 @@
       gap: 6px;
     }
 
-    /* =========================
-       SERVER ROW
-    ========================= */
+    /* === GRID === */
     .row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
 
-    /* =========================
-       CARD
-    ========================= */
+    /* === CARD === */
     .card {
       display: flex;
       align-items: center;
@@ -118,22 +98,14 @@
       transition: background 0.2s, transform 0.1s;
     }
 
-    .card:hover {
-      background: var(--card-hover);
-    }
-
-    .card:active {
-      transform: scale(0.99);
-    }
+    .card:hover  { background: var(--card-hover); }
+    .card:active { transform: scale(0.99); }
 
     .card.disabled {
       opacity: 0.45;
       cursor: not-allowed;
     }
 
-    /* =========================
-       CARD CONTENT
-    ========================= */
     .left {
       display: flex;
       align-items: center;
@@ -155,9 +127,7 @@
       white-space: nowrap;
     }
 
-    /* =========================
-       FOOTER
-    ========================= */
+    /* === FOOTER === */
     .footer {
       margin-top: 40px;
       text-align: center;
@@ -165,29 +135,83 @@
       color: #555;
     }
 
-    /* =========================
-       MOBILE
-    ========================= */
+    .footer a {
+      color: #777;
+      text-decoration: none;
+      margin: 0 6px;
+    }
+
+    .footer a:hover {
+      color: #aaa;
+    }
+
+    .footer-links {
+      margin-bottom: 24px;
+    }
+
+    .footer-divider {
+      width: 40px;
+      height: 1px;
+      background: #1e1e1e;
+      margin: 0 auto 20px;
+    }
+
+    /* === VISITOR COUNTER === */
+    .vc-bar {
+      display: inline-flex;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid #2a2a2a;
+      border-radius: 999px;
+      padding: 5px 4px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: #777;
+    }
+
+    .vc-seg {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+    }
+
+    .vc-seg + .vc-seg {
+      border-left: 1px solid #2a2a2a;
+    }
+
+    .vc-num {
+      font-weight: 600;
+      color: #ccc;
+      font-size: 12px;
+    }
+
+    .vc-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+      animation: vc-blink 2s ease-in-out infinite;
+    }
+
+    @keyframes vc-blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* === MOBILE === */
     @media (max-width: 640px) {
-      .container {
-        padding: 16px;
-      }
-
-      .row {
-        grid-template-columns: 1fr;
-        gap: 18px;
-      }
-
-      .card {
-        padding: 16px;
-      }
+      .container { padding: 16px; }
+      .row       { grid-template-columns: 1fr; gap: 18px; }
+      .card      { padding: 16px; }
     }
   </style>
 </head>
 
 <body>
-
   <div class="container">
+
     <h1>LIVE CCTV Yogyakarta</h1>
     <div class="subtitle">Pilih wilayah untuk melihat kamera CCTV</div>
 
@@ -286,18 +310,77 @@
       </div>
     </div>
 
+    <!-- FOOTER -->
     <div class="footer">
-  <div style="margin-bottom:6px;">
-    <a href="/about.html" style="color:#777;text-decoration:none;margin:0 6px;">About</a> |
-    <a href="/contact.html" style="color:#777;text-decoration:none;margin:0 6px;">Contact</a> |
-    <a href="/privacy-policy.html" style="color:#777;text-decoration:none;margin:0 6px;">Privacy</a> |
-    <a href="/terms-of-service.html" style="color:#777;text-decoration:none;margin:0 6px;">Terms</a>
-  </div>
-  25 maret © 2026
+      <div class="footer-links">
+        <a href="/about.html">About</a> |
+        <a href="/contact.html">Contact</a> |
+        <a href="/privacy-policy.html">Privacy</a> |
+        <a href="/terms-of-service.html">Terms</a>
+      </div>
+
+      <div class="footer-divider"></div>
+
+      <div class="vc-bar">
+        <div class="vc-seg">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#777" stroke-width="1.6">
+            <circle cx="8" cy="5.5" r="2.5"/>
+            <path d="M2.5 14c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5"/>
+          </svg>
+          <span id="vc-total" class="vc-num">—</span>
+          <span>pengunjung</span>
+        </div>
+        <div class="vc-seg">
+          <div class="vc-dot"></div>
+          <span id="vc-online" class="vc-num">—</span>
+          <span>online</span>
+        </div>
+      </div>
+
+      <div>25 maret © 2026</div>
     </div>
 
   </div>
 
+  <script>
+    (function () {
+      var NAMESPACE   = "cctv-jogja-xxgbrl";
+      var KEY         = "total-hits";
+      var API         = "https://countapi.mileshilliard.com/api/v1";
+      var SESSION_KEY = "vc_visited";
+
+      var elTotal  = document.getElementById("vc-total");
+      var elOnline = document.getElementById("vc-online");
+
+      function fmt(n) {
+        return Number(n).toLocaleString("id-ID");
+      }
+
+      function getOnlineEstimate(total) {
+        return Math.max(1, Math.round(total / (90 + Math.random() * 30)));
+      }
+
+      var newVisitor = !sessionStorage.getItem(SESSION_KEY);
+      var endpoint   = newVisitor
+        ? API + "/hit/" + NAMESPACE + "_" + KEY
+        : API + "/get/" + NAMESPACE + "_" + KEY;
+
+      if (newVisitor) {
+        sessionStorage.setItem(SESSION_KEY, "1");
+      }
+
+      fetch(endpoint)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var total = parseInt(data.value) || 0;
+          elTotal.textContent  = fmt(total);
+          elOnline.textContent = getOnlineEstimate(total);
+        })
+        .catch(function () {
+          elTotal.textContent  = "—";
+          elOnline.textContent = "—";
+        });
+    })();
+  </script>
 </body>
 </html>
-
