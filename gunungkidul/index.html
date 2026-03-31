@@ -432,18 +432,38 @@ clearBtn.addEventListener("click", () => {
   renderCameraList(cameras);
   searchBox.focus();
 });
+</script>
 
-  (function () {
-    var NAMESPACE   = "cctv-jogja-xxgbrl";
-    var KEY         = "total-hits";
-    var API         = "https://countapi.mileshilliard.com/api/v1";
-    var SESSION_KEY = "vc_visited";
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onDisconnect }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    if (!sessionStorage.getItem(SESSION_KEY)) {
-      sessionStorage.setItem(SESSION_KEY, "1");
-      fetch(API + "/hit/" + NAMESPACE + "_" + KEY);
-    }
-  })();
+  const app = initializeApp({
+    apiKey:            "AIzaSyDgu5O5NIh99u3Lr7OXZU2IM-Uu75vvVBQ",
+    authDomain:        "cctvjogja-1c5a8.firebaseapp.com",
+    databaseURL:       "https://cctvjogja-1c5a8-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "cctvjogja-1c5a8",
+    storageBucket:     "cctvjogja-1c5a8.firebasestorage.app",
+    messagingSenderId: "962684380548",
+    appId:             "1:962684380548:web:24e98d0888a309e43ba9d1"
+  }, "folder-tracker");
+
+  const db = getDatabase(app);
+
+  if (!sessionStorage.getItem("vc_visited")) {
+    sessionStorage.setItem("vc_visited", "1");
+    fetch("https://countapi.mileshilliard.com/api/v1/hit/cctv-jogja-xxgbrl_total-hits");
+  }
+
+  const uid = sessionStorage.getItem("vc_uid") || Math.random().toString(36).slice(2);
+  sessionStorage.setItem("vc_uid", uid);
+
+  const userRef = ref(db, "online/" + uid);
+  set(userRef, { t: Date.now() });
+  onDisconnect(userRef).remove();
+  setInterval(() => set(userRef, { t: Date.now() }), 15000);
 </script>
 
 </body>
