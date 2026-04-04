@@ -385,16 +385,20 @@ setInterval(checkAllStatuses, 2 * 60 * 1000);
 /* =============================
    SEARCH HANDLER
 ============================= */
+let searchDebounce = null;
 searchBox.addEventListener("input", e => {
   const q = e.target.value.toLowerCase();
   clearBtn.style.display = q ? "block" : "none";
   renderCameraList(cameras.filter(cam => cam.name.toLowerCase().includes(q)));
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => checkAllStatuses(), 300);
 });
 
 clearBtn.addEventListener("click", () => {
   searchBox.value = "";
   clearBtn.style.display = "none";
   renderCameraList(cameras);
+  checkAllStatuses();
   searchBox.focus();
 });
 </script>
