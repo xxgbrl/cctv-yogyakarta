@@ -4,7 +4,6 @@ Platform sederhana untuk memantau kamera CCTV publik di seluruh wilayah **Daerah
 
 🌐 **Live site:**
 - [xxgbrl.github.io/cctv-yogyakarta](https://xxgbrl.github.io/cctv-yogyakarta)
-- [cctv.nezuka.net](https://cctv.nezuka.net)
 - [cctvjogja.pages.dev](https://cctvjogja.pages.dev)
 - [cctvjogja.netlify.app](https://cctvjogja.netlify.app)
 
