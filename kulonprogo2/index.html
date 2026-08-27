@@ -182,6 +182,8 @@
   </div>
 
 <script>
+const PROXY_URL = "https://proxy-cctv.gabriel-dimas-eka-jaya.workers.dev/";
+
 const rawLinks = `
 https://cctv.jogjaprov.go.id/cctv-proxy/atcs/DemenGlagah_TC.stream/chunklist_w1072692820.m3u8
 https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Siluwok.stream/chunklist_w912951046.m3u8
@@ -244,7 +246,11 @@ const dotMap = {};
 
 async function checkStatus(cam) {
   try {
-    const res = await fetch(cam.url, { method: "HEAD", cache: "no-store" });
+    const safeUrl = PROXY_URL + cam.url;
+    const res = await fetch(safeUrl, { 
+      method: "HEAD", 
+      cache: "no-store" 
+    });
     return res.ok;
   } catch {
     return false;
@@ -288,7 +294,10 @@ function playCamera(cam, btn) {
 
   if (Hls.isSupported()) {
     hls = new Hls({ lowLatencyMode: true, maxBufferLength: 10 });
-    hls.loadSource(cam.url);
+    
+    const safeUrl = PROXY_URL + cam.url;
+    hls.loadSource(safeUrl); 
+    
     hls.attachMedia(video);
     hls.on(Hls.Events.ERROR, (e, d) => {
       if (cameraId !== currentCameraId) return;
@@ -300,7 +309,8 @@ function playCamera(cam, btn) {
       }
     });
   } else {
-    video.src = cam.url;
+    const safeUrl = PROXY_URL + cam.url;
+    video.src = safeUrl;
   }
 }
 
