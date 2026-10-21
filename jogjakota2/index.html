@@ -13,6 +13,9 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
   <style>
+    /* =====================
+       BASE STYLE
+    ===================== */
     body {
       margin: 0;
       background: #0b0b0b;
@@ -24,6 +27,9 @@
 
     video { width: 100%; height: 100%; }
 
+    /* =====================
+       SIDEBAR
+    ===================== */
     .sidebar {
       width: 360px;
       background: #111;
@@ -74,6 +80,7 @@
 
     .cam-name { flex: 1; }
 
+    /* Status dot */
     .status-dot {
       width: 8px;
       height: 8px;
@@ -86,8 +93,14 @@
     .status-dot.online  { background: #2ecc71; }
     .status-dot.offline { background: #e74c3c; }
 
+    /* =====================
+       SEARCH
+    ===================== */
     #searchBox::placeholder { color: #777; }
 
+    /* =====================
+       PLAYER
+    ===================== */
     .player {
       flex: 1;
       display: flex;
@@ -124,6 +137,9 @@
 
     #closeBtn:hover { background: #c0392b; }
 
+    /* =====================
+       MOBILE MODE
+    ===================== */
     @media (max-width: 768px) {
       body { flex-direction: column; }
 
@@ -148,12 +164,14 @@
 
 <body>
 
+  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-header">
       <a href="../" class="back-home">⇐ Kembali ke Beranda</a>
     </div>
     <h2>DAFTAR CCTV</h2>
 
+    <!-- SEARCH -->
     <div style="padding:10px;border-bottom:1px solid #222;display:flex;gap:6px">
       <input
         id="searchBox"
@@ -171,6 +189,7 @@
     <div id="camList"></div>
   </div>
 
+  <!-- PLAYER -->
   <div class="player">
     <div class="player-title">
       <span id="playerTitle">Pilih kamera</span>
@@ -182,183 +201,182 @@
   </div>
 
 <script>
-const PROXY_URL = "https://cctv-proxy.nezuka.dpdns.org/";
-
+/* =============================
+   DATA CCTV
+============================= */
 const rawLinks = `
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/PasarDemangan.stream/chunklist_w273159487.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/MirotaKampus.stream/chunklist_w470102882.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangTugu.stream/chunklist_w1445556717.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewTugu.stream/chunklist_w1965423212.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Tugu2.stream/chunklist_w1454464989.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewSimpangTugu.stream/chunklist_w1570292384.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/MargoUtomo_TokoCatWahyu.stream/chunklist_w1690259603.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/FMNotoMcDonalds.stream/chunklist_w1517712257.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangTerbanUtara.stream/chunklist_w854337777.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangTerbanBarat.stream/chunklist_w1529362763.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangTerbanTimur.stream/chunklist_w1435492484.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Gramedia1.stream/chunklist_w1830218678.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gramedia.stream/chunklist_w424248086.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gramedia2.stream/chunklist_w1113606175.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/Pertigaan_UIN.stream/chunklist_w824992002.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_Pingit1.stream/chunklist_w470411692.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_Pingit2.stream/chunklist_w443294586.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Pingit.stream/chunklist_w1060766610.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_Pingit3.stream/chunklist_w6445215.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_Pingit4.stream/chunklist_w1914255714.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/JatiKencana.stream/chunklist_w1587288305.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangJatikencana.stream/chunklist_w749390773.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KyaiMojo1.stream/chunklist_w1742495461.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KyaiMojoTimur.stream/chunklist_w37788211.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/MargoUtomo_GowonganLor.stream/chunklist_w740340162.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/MargoUtomo_WijayaBaruTravel.stream/chunklist_w1040645631.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/MargoUtomo_SelatanOlive.stream/chunklist_w960315034.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/MargoUtomo_OpticTugu.stream/chunklist_w693495775.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Jlagran.stream/chunklist_w494713281.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-sungai/KaliWinongo.stream/chunklist_w13541723.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/BPK.stream/chunklist_w1690271668.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SupraptoKSTubunUtara.stream/chunklist_w2034917400.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SupraptoKSTubunSelatan.stream/chunklist_w1516690422.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Wirobrajan.stream/chunklist_w1591171555.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Serangan.stream/chunklist_w1666726110.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/ParkiranNgabean.stream/chunklist_w410189039.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/PKUMuh.stream/chunklist_w2088860676.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangPatangpuluhan.stream/chunklist_w831730605.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Tamansari.stream/chunklist_w2008706146.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_SugengJeroni2.stream/chunklist_w1749223899.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_SugengJeroni1.stream/chunklist_w1102901358.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/JoktengKulon.stream/chunklist_w1952379434.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewAlunAlunKidul.stream/chunklist_w1079152522.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_PasarGadingBarat.stream/chunklist_w1805792424.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_PasarGading2.stream/chunklist_w250480020.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/JogokariyanSelatan.stream/chunklist_w1332210736.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/JogokariyanUtara.stream/chunklist_w1007274056.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangPasarTeloUtara.stream/chunklist_w1032545213.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangPasarTeloSelatan.stream/chunklist_w848469901.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/PasarTelo.stream/chunklist_w969499318.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/WirosabanUtara.stream/chunklist_w1366520838.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/WirosabanSelatan.stream/chunklist_w291625243.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/WirosabanTimur.stream/chunklist_w506299158.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/WirosabanBarat.stream/chunklist_w1748033693.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangBasenUtara.stream/chunklist_w595260240.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangGambiranBarat.stream/chunklist_w879258927.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangGambiranTimur.stream/chunklist_w526815542.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_MenteriSupeno2.stream/chunklist_w1679851611.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_MenteriSupeno1.stream/chunklist_w80791244.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Tungkak.stream/chunklist_w1188258757.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KarangTunggal.stream/chunklist_w1716510410.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KarangTunggalBarat.stream/chunklist_w1483876619.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KarangTunggalTimur.stream/chunklist_w796653667.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/JoktengWetanParis.stream/chunklist_w359302310.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/JoktengWetan.stream/chunklist_w2141035349.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Mantrigawen.stream/chunklist_w245730205.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-sungai/KaliGajahWong2.stream/chunklist_w503259795.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-sungai/KaliGajahWong1.stream/chunklist_w1994916875.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/APMD.stream/chunklist_w77877989.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gedongkuning.stream/chunklist_w1440417858.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangRejowinangunTimur.stream/chunklist_w2083205635.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Warungboto1.stream/chunklist_w1386725282.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Warungboto2.stream/chunklist_w1323274129.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangBalaikotaBarat.stream/chunklist_w34398665.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangBalaikotaTimur.stream/chunklist_w1478228573.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangBalaikota.stream/chunklist_w85949353.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/UST.stream/chunklist_w2029417293.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/GlagahsariUtaraTimur.stream/chunklist_w341985701.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Glagahsari.stream/chunklist_w1869633992.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Cendana.stream/chunklist_w1733415833.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Sentul.stream/chunklist_w1801304591.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Permata.stream/chunklist_w1227499311.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/IbuRuswo.stream/chunklist_w307813458.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gondomanan.stream/chunklist_w139494955.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangGondomananSelatan.stream/chunklist_w1459953235.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangAmongrogoTimur.stream/chunklist_w965429043.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Mandalakrida.stream/chunklist_w313065963.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gayam.stream/chunklist_w1254931937.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Tunjung.stream/chunklist_w822627306.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangBausasran.stream/chunklist_w1960638431.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Melia.stream/chunklist_w23769117.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/UKDW.stream/chunklist_w1402443075.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangAtmosukarto.stream/chunklist_w719277465.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/FMNoto.stream/chunklist_w1463841919.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Sajiono.stream/chunklist_w779758563.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Juadi.stream/chunklist_w1697359460.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Wardhani.stream/chunklist_w2053184265.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/YosSudarso.stream/chunklist_w126285606.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/FMNotoAniem.stream/chunklist_w990130922.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/NyomanKotabaru.stream/chunklist_w443971238.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/AhmadJazuli.stream/chunklist_w1210153509.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Kleringan.stream/chunklist_w745299702.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewStasiunTugu.stream/chunklist_w108966179.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/MargoUtomo_WismaRatih.stream/chunklist_w951820798.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio21_UtaraInnaGaruda.stream/chunklist_w1279993936.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio1_SelatanTeteg.stream/chunklist_w820571578.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanGaruda.stream/chunklist_w1924705096.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio2_DepanTokoSubur.stream/chunklist_w1921745487.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio3_DepanDispar.stream/chunklist_w2108564575.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio4_DepanDPRD.stream/chunklist_w340109059.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio5_Perwakilan.stream/chunklist_w1385518698.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio25_UtaraMall.stream/chunklist_w1120831827.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio6_MallUtara.stream/chunklist_w276902872.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanMall.stream/chunklist_w827551415.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio7_MallSelatan.stream/chunklist_w737761467.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio8_MutiaraLama.stream/chunklist_w1081452902.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio9_MutiaraBaru.stream/chunklist_w2124864122.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio23_Depan_BPD_Kepatihan.stream/chunklist_w1043778373.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio10_Kepatihan.stream/chunklist_w1995920041.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio22_SimpangPajeksan.stream/chunklist_w1646669917.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio11_TerangBulan.stream/chunklist_w91072035.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio12_Ramayana.stream/chunklist_w668303895.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio13_GunungMas.stream/chunklist_w1736133893.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanBeringharjo.stream/chunklist_w697056139.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio30_Beringharjo.stream/chunklist_w1710639334.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio24_SimpangReksobayan.stream/chunklist_w433549394.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio_NolKmGedungAgung.stream/chunklist_w357089281.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio_NolKmUtara.stream/chunklist_w564936627.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio_NolKm_Timur.stream/chunklist_w1551507684.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KMNol.stream/chunklist_w980770866.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewNolKilo.stream/chunklist_w1478129394.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangMelia.stream/chunklist_w1352537356.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangDeBritto.stream/chunklist_w407119132.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangDemanganSelatan.stream/chunklist_w2082989311.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangDemanganUtara.stream/chunklist_w1671376627.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangDemanganTimur.stream/chunklist_w413588980.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/GramediaTimur.stream/chunklist_w1725640005.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Jetis.stream/chunklist_w1128615240.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangGaleriaTImurSelatan.stream/chunklist_w1929190117.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Giwangan.stream/chunklist_w1059613242.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Giwangan1.stream/chunklist_w1870518242.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/KetandanBarat.stream/chunklist_w1588316871.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Kleringan1.stream/chunklist_w1097080490.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Kleringan3.stream/chunklist_w1874144353.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Ngasem.stream/chunklist_w1312807223.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangBorobudurPlaza.stream/chunklist_w351896109.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangSGM.stream/chunklist_w1587474995.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Tegalgendu.stream/chunklist_w1112602553.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/BorobudurPlaza.stream/chunklist_w940586300.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Demangan.stream/chunklist_w2065081348.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/DemanganUtara.stream/chunklist_w1402414691.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/JatiKencanaBarat.stream/chunklist_w1037317910.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Ketandan2.stream/chunklist_w306023545.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Kleringan2.stream/chunklist_w1905115486.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/MeliaTimur.stream/chunklist_w533554003.m3u8
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Tugu3.stream/chunklist_w276549243.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/AhmadJazuli.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/APMD.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/BPK.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Cendana.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/FMNoto.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/FMNotoAniem.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/FMNotoMcDonalds.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Gayam.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Gedongkuning.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Glagahsari.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/GlagahsariUtaraTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Gondomanan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Gramedia.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Gramedia2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Gramedia2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/GramediaTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/IbuRuswo.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Jetis.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Jlagran.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/JogokariyanSelatan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/JogokariyanUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/JoktengKulon.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/JoktengWetan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/JoktengWetanParis.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Juadi.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-sungai/streams/KaliGajahWong2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-sungai/streams/KaliNgentak.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-sungai/streams/KaliWinongo.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/KarangTunggalBarat.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/KarangTunggalTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/KMNol.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/KyaiMojo1.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/KyaiMojoTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Mandalakrida.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Mantrigawen.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/MargoUtomo_GowonganLor.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/MargoUtomo_OpticTugu.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/MargoUtomo_SelatanOlive.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/MargoUtomo_TokoCatWahyu.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/MargoUtomo_WijayaBaruTravel.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/MargoUtomo_WismaRatih.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/MirotaKampus.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/NyomanKotabaru.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/ParkiranNgabean.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/PasarDemangan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/PasarTelo.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Permata.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Pingit.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/PKUMuh.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Sajiono.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Sentul.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Serangan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_MenteriSupeno1.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_MenteriSupeno2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_PasarGading2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_PasarGadingBarat.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_Pingit1.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_Pingit2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_Pingit3.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_Pingit4.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_SugengJeroni1.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Simpang_SugengJeroni2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangAmongrogoTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangBalaikotaBarat.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangBalaikotaTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangBasenUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangBausasran.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangBorobudurPlaza.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangDeBritto.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangDemanganSelatan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangDemanganTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangDemanganUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangGaleriaTImurSelatan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangGambiranBarat.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangGambiranTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangGondomananSelatan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangJatikencana.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangMelia.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangPasarTeloSelatan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangPasarTeloUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangPatangpuluhan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangRejowinangunTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangSGM.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangTerbanBarat.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangTerbanTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangTerbanUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SimpangTugu.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SupraptoKSTubunSelatan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/SupraptoKSTubunUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Tamansari.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Tegalgendu.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Tungkak.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Tunjung.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/UKDW.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/UST.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Wardhani.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Warungboto1.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Warungboto2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/Wirobrajan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/WirosabanBarat.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/WirosabanSelatan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/WirosabanTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/WirosabanUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/streams/YosSudarso.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewAlunAlunKidul.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewDepanBeringharjo.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewDepanGaruda.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewDepanMall.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewMangunan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewNolKilo.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewSimpangTugu.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewStasiunTugu.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/streams/ViewTugu.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/BorobudurPlaza.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Demangan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/DemanganUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Gramedia1.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Janti.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/JatiKencana.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/JatiKencanaBarat.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Ketandan2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/KetandanBarat.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Kleringan1.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Kleringan2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Kleringan3.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Melia.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/MeliaTimur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Ngasem.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Tugu2.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/atcs/streams/Tugu3.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio10_Kepatihan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio11_TerangBulan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio12_Ramayana.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio13_GunungMas.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio1_SelatanTeteg.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio21_UtaraInnaGaruda.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio22_SimpangPajeksan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio23_Depan_BPD_Kepatihan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio24_SimpangReksobayan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio25_UtaraMall.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio2_DepanTokoSubur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio30_Beringharjo.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio3_DepanDispar.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio4_DepanDPRD.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio5_Perwakilan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio6_MallUtara.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio7_MallSelatan.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio8_MutiaraLama.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio9_MutiaraBaru.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio_NolKm_Timur.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio_NolKmGedungAgung.stream.m3u8
+https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/streams/UPTMalio_NolKmUtara.stream.m3u8
 `;
 
+/* =============================
+   SORT A-Z
+============================= */
 const cameras = rawLinks
   .split("\n")
   .map(l => l.trim())
   .filter(Boolean)
   .map(url => {
-    const parts = url.split("/");
-    const rawName = parts[parts.length - 2];
-    const name = rawName
-      .replace(".stream", "")
-      .replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/(\D)(\d+)/g, "$1 $2")
-      .trim();
+    const match = url.match(/\/streams\/(.+?)\.stream/);
+    const rawName = match ? match[1] : url.split("/").pop();
+    const name = rawName.replace(/_/g, " ").trim();
     return { name, url };
   })
-  .sort((a, b) => a.name.localeCompare(b.name));
+  .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
 
+/* =============================
+   ELEMENT REFERENCES
+============================= */
 const camList     = document.getElementById("camList");
 const playerBody  = document.getElementById("playerBody");
 const playerTitle = document.getElementById("playerTitle");
@@ -370,6 +388,9 @@ let activeBtn = null;
 let currentCameraId = 0;
 const dotMap = {};
 
+/* =============================
+   STATUS CHECK
+============================= */
 async function checkStatus(cam) {
   try {
     const safeUrl = PROXY_URL + cam.url;
@@ -395,6 +416,9 @@ async function checkAllStatuses() {
   }));
 }
 
+/* =============================
+   PLAYER CONTROLS
+============================= */
 function stopPlayer() {
   if (hls) { hls.destroy(); hls = null; }
   playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera</div>';
@@ -450,6 +474,9 @@ function closePlayer() {
   playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera di kiri</div>';
 }
 
+/* =============================
+   RENDER LIST
+============================= */
 function renderCameraList(list) {
   camList.innerHTML = "";
   list.forEach(cam => {
@@ -476,6 +503,9 @@ renderCameraList(cameras);
 checkAllStatuses();
 setInterval(checkAllStatuses, 2 * 60 * 1000);
 
+/* =============================
+   SEARCH HANDLER
+============================= */
 let searchDebounce = null;
 searchBox.addEventListener("input", e => {
   const q = e.target.value.toLowerCase();

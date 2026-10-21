@@ -14,6 +14,9 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
   <style>
+    /* =====================
+       BASE STYLE
+    ===================== */
     body {
       margin: 0;
       background: #0b0b0b;
@@ -25,6 +28,9 @@
 
     video { width: 100%; height: 100%; }
 
+    /* =====================
+       SIDEBAR
+    ===================== */
     .sidebar {
       width: 360px;
       background: #111;
@@ -75,6 +81,7 @@
 
     .cam-name { flex: 1; }
 
+    /* Status dot */
     .status-dot {
       width: 8px;
       height: 8px;
@@ -87,8 +94,14 @@
     .status-dot.online  { background: #2ecc71; }
     .status-dot.offline { background: #e74c3c; }
 
+    /* =====================
+       SEARCH
+    ===================== */
     #searchBox::placeholder { color: #777; }
 
+    /* =====================
+       PLAYER
+    ===================== */
     .player {
       flex: 1;
       display: flex;
@@ -125,6 +138,9 @@
 
     #closeBtn:hover { background: #c0392b; }
 
+    /* =====================
+       MOBILE MODE
+    ===================== */
     @media (max-width: 768px) {
       body { flex-direction: column; }
 
@@ -149,12 +165,14 @@
 
 <body>
 
+  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-header">
       <a href="../" class="back-home">⇐ Kembali ke Beranda</a>
     </div>
     <h2>DAFTAR CCTV</h2>
 
+    <!-- SEARCH -->
     <div style="padding:10px;border-bottom:1px solid #222;display:flex;gap:6px">
       <input
         id="searchBox"
@@ -172,6 +190,7 @@
     <div id="camList"></div>
   </div>
 
+  <!-- PLAYER -->
   <div class="player">
     <div class="player-title">
       <span id="playerTitle">Pilih kamera</span>
@@ -183,16 +202,21 @@
   </div>
 
 <script>
+/* =============================
+   DATA CCTV
+============================= */
 const cameras = [
   { name: "Alun-alun Wonosari Fix", url: "https://stream.gunungkidulkab.go.id:8888/c066fe94-69d3-487b-990a-f0bdb24fa9e9/index.m3u8" },
   { name: "Alun-Alun Wonosari PTZ", url: "https://stream.gunungkidulkab.go.id:8888/cd59b3ca-9f14-4660-96a6-2e65442c52a2/index.m3u8" },
   { name: "BPP Playen", url: "https://stream.gunungkidulkab.go.id:8888/40c44e72-0ef8-42b5-9410-8c88ad2d062d/index.m3u8" },
   { name: "BPP Semanu Barat", url: "https://stream.gunungkidulkab.go.id:8888/27c0b2c4-a1bf-4ed9-95ca-9d88f046c754/index.m3u8" },
   { name: "BPP Semanu Timur", url: "https://stream.gunungkidulkab.go.id:8888/bc790186-e5cc-4552-80e2-b715305ee997/index.m3u8" },
-  { name: "Bunderan Kodim", url: "https://stream.gunungkidulkab.go.id:8888/e91760d5-95b8-4907-a49d-f46885390291/index.m3u8" },
+  { name: "Bunderan Kodim 1", url: "https://stream.gunungkidulkab.go.id:8888/e91760d5-95b8-4907-a49d-f46885390291/index.m3u8" },
+  { name: "Bunderan Kodim 2", url: "https://stream.gunungkidulkab.go.id:8888/33edb24d-088c-4f49-ac90-f90a73a995ab/index.m3u8" },
   { name: "Bunderan PLN", url: "https://stream.gunungkidulkab.go.id:8888/ef7bc11d-8e05-4414-8e25-edeb78929cf0/index.m3u8" },
   { name: "Bunderan PLN PTZ", url: "https://stream.gunungkidulkab.go.id:8888/de774241-aaec-4937-a43a-ab59b7525dd0/index.m3u8" },
-  { name: "Bunderan Siyono", url: "https://stream.gunungkidulkab.go.id:8888/365d3972-8e24-4b8e-a9bd-2db5cbcbfee8/index.m3u8" },
+  { name: "Bunderan Siyono High Mast 1", url: "https://stream.gunungkidulkab.go.id:8888/365d3972-8e24-4b8e-a9bd-2db5cbcbfee8/index.m3u8" },
+  { name: "Bunderan Siyono High Mast 2", url: "https://stream.gunungkidulkab.go.id:8888/8fbde250-bac2-49a2-b785-d440e4859cca/index.m3u8" },
   { name: "Bunderan Siyono Fix", url: "https://stream.gunungkidulkab.go.id:8888/447f180a-3aa6-41af-a905-4f5567b84f1b/index.m3u8" },
   { name: "Bunderan Siyono PTZ", url: "https://stream.gunungkidulkab.go.id:8888/c02bf2b6-834c-4c9b-9be6-f2980d859bb8/index.m3u8" },
   { name: "Embung Batara Sriten", url: "https://stream.gunungkidulkab.go.id:8888/f15832eb-7d45-4800-b740-ade96dc7d94e/index.m3u8" },
@@ -217,7 +241,6 @@ const cameras = [
   { name: "Kapanewon Semin Selatan", url: "https://stream.gunungkidulkab.go.id:8888/b788631e-790a-4034-a021-d70223e93e56/index.m3u8" },
   { name: "Kapanewon Semin Utara", url: "https://stream.gunungkidulkab.go.id:8888/25a25318-0831-41ca-a84e-cb725af7a912/index.m3u8" },
   { name: "Kelurahan Rejosari", url: "https://stream.gunungkidulkab.go.id:8888/a8b41e1f-51ae-4f3c-b61f-3d3485714fee/index.m3u8" },
-  { name: "Kodim Gunungkidul", url: "https://stream.gunungkidulkab.go.id:8888/33edb24d-088c-4f49-ac90-f90a73a995ab/index.m3u8" },
   { name: "Lapangan Kesatrian", url: "https://stream.gunungkidulkab.go.id:8888/1c2623b9-0382-4f33-b748-3941f4a96549/index.m3u8" },
   { name: "Lapangan Pemda Barat", url: "https://stream.gunungkidulkab.go.id:8888/618a774c-186e-4ab2-9d9c-e4f59d09ab66/index.m3u8" },
   { name: "Multi CCTV Area Barat", url: "https://stream.gunungkidulkab.go.id:8888/57dc6738-691c-4fa1-8c28-fac85589c966/index.m3u8" },
@@ -240,6 +263,10 @@ const cameras = [
   { name: "Pasar Argosari", url: "https://stream.gunungkidulkab.go.id:8888/5b13c6d9-1295-4e5d-927a-ef546e433339/index.m3u8" },
   { name: "Pasar Besole", url: "https://stream.gunungkidulkab.go.id:8888/7b3d393b-a09c-4492-9515-b854050db981/index.m3u8" },
   { name: "Pasar Wotgalih", url: "https://stream.gunungkidulkab.go.id:8888/d7bca391-48f3-48d5-9744-ddf548c21ca4/index.m3u8" },
+  { name: "Pemantauan Area Barat Kabupaten Gunungkidul", url: "https://stream.gunungkidulkab.go.id:8888/grid/7576689e-e8c9-4860-881f-ff6e470223b6/index.m3u8" },
+  { name: "Pemantauan Area Kota Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/grid/e2dcef05-6985-48b4-a42b-eca39337ae3e/index.m3u8" },
+  { name: "Pemantauan Area Pantai", url: "https://stream.gunungkidulkab.go.id:8888/grid/9c6a288e-4859-470a-8108-7642374ce617/index.m3u8" },
+  { name: "Pemantauan Area TPR", url: "https://stream.gunungkidulkab.go.id:8888/grid/81ae2a59-4bc2-4232-bc91-602d839cfdda/index.m3u8" },
   { name: "Pemda Gunungkidul", url: "https://stream.gunungkidulkab.go.id:8888/d41813e2-fafb-42a4-a7b9-5e713c0e9606/index.m3u8" },
   { name: "Penghitungan Kendaraan", url: "https://stream.gunungkidulkab.go.id:8888/12b63a3e-3503-4b4d-b90b-93b79f6873c5/index.m3u8" },
   { name: "Perempatan Patuk", url: "https://stream.gunungkidulkab.go.id:8888/d237c46b-f15b-490c-869c-b5375df3a020/index.m3u8" },
@@ -303,15 +330,21 @@ const cameras = [
   { name: "SMP 3 Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/f156c1d9-9381-45f5-a20f-cd323fb3a639/index.m3u8" },
   { name: "Taman Kota", url: "https://stream.gunungkidulkab.go.id:8888/93b13543-ed56-48dc-a6b2-b73c3fc8f29a/index.m3u8" },
   { name: "Terminal Semin", url: "https://stream.gunungkidulkab.go.id:8888/f4e65d43-ff9a-4603-b035-b2bb778fc9d1/index.m3u8" },
-  { name: "TPR Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/f6314dd1-a8ea-40a9-8a97-e0f2f8dc4bdd/index.m3u8" },
   { name: "TPR Pantai Baron Utama 1", url: "https://stream.gunungkidulkab.go.id:8888/9582f7dc-118c-4e4d-a676-65f8f145d13e/index.m3u8" },
   { name: "TPR Pantai Baron Utama 2", url: "https://stream.gunungkidulkab.go.id:8888/9cca7e74-e0b0-49b1-9d62-effbb8589555/index.m3u8" },
+  { name: "TPR Pantai Baron Utama 3", url: "https://stream.gunungkidulkab.go.id:8888/f6314dd1-a8ea-40a9-8a97-e0f2f8dc4bdd/index.m3u8" },
   { name: "Tugu Selamat Datang Patuk Fix", url: "https://stream.gunungkidulkab.go.id:8888/472ac01d-84a3-40bd-b8a4-d7de2262f65b/index.m3u8" },
   { name: "Tugu Selamat Datang Patuk PTZ", url: "https://stream.gunungkidulkab.go.id:8888/58328653-bae9-4e69-82d0-b83d500040b1/index.m3u8" },
 ];
 
+/* =============================
+   SORT A-Z
+============================= */
 cameras.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
+/* =============================
+   ELEMENT REFERENCES
+============================= */
 const camList     = document.getElementById("camList");
 const playerBody  = document.getElementById("playerBody");
 const playerTitle = document.getElementById("playerTitle");
@@ -323,6 +356,9 @@ let activeBtn = null;
 let currentCameraId = 0;
 const dotMap = {};
 
+/* =============================
+   STATUS CHECK
+============================= */
 async function checkStatus(cam) {
   try {
     const res = await fetch(cam.url, { method: "GET", cache: "no-store" });
@@ -344,6 +380,9 @@ async function checkAllStatuses() {
   }));
 }
 
+/* =============================
+   PLAYER CONTROLS
+============================= */
 function stopPlayer() {
   if (hls) { hls.destroy(); hls = null; }
   playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera</div>';
@@ -395,6 +434,9 @@ function closePlayer() {
   playerBody.innerHTML = '<div class="placeholder">📷 Klik nama kamera di kiri</div>';
 }
 
+/* =============================
+   RENDER LIST
+============================= */
 function renderCameraList(list) {
   camList.innerHTML = "";
   list.forEach(cam => {
@@ -421,6 +463,9 @@ renderCameraList(cameras);
 checkAllStatuses();
 setInterval(checkAllStatuses, 2 * 60 * 1000);
 
+/* =============================
+   SEARCH HANDLER
+============================= */
 let searchDebounce = null;
 searchBox.addEventListener("input", e => {
   const q = e.target.value.toLowerCase();

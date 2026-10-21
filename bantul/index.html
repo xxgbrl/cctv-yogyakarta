@@ -244,7 +244,7 @@
 
 <script>
 /* =============================
-   DATA CCTV (MANUAL)
+   DATA CCTV
 ============================= */
 const cameras = [
   { name: "Bendung Klegen", url: "https://stream.bantulkab.go.id/memfs/a293d997-0258-4317-ac84-0b1bc4abf14c_output_0.m3u8" },
@@ -319,8 +319,6 @@ const clearBtn    = document.getElementById("clearSearch");
 let hls = null;
 let activeBtn = null;
 let currentCameraId = 0;
-
-// Map url -> dot element (untuk update status)
 const dotMap = {};
 
 /* =============================
@@ -336,7 +334,6 @@ async function checkStatus(cam) {
 }
 
 async function checkAllStatuses() {
-  // Cek semua kamera secara paralel
   await Promise.all(cameras.map(async cam => {
     const online = await checkStatus(cam);
     const dot = dotMap[cam.url];
@@ -439,8 +436,6 @@ function renderCameraList(list) {
     const dot = document.createElement("span");
     dot.className = "status-dot";
     dot.title = "Mengecek...";
-
-    // Simpan referensi dot berdasarkan URL
     dotMap[cam.url] = dot;
 
     btn.appendChild(nameSpan);
@@ -451,11 +446,7 @@ function renderCameraList(list) {
 }
 
 renderCameraList(cameras);
-
-// Cek status setelah list dirender
 checkAllStatuses();
-
-// Refresh status setiap 2 menit
 setInterval(checkAllStatuses, 2 * 60 * 1000);
 
 /* =============================
