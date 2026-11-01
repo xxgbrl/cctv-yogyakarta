@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
+  
   <title>LIVE CCTV Yogyakarta – Pantau CCTV Publik Yogyakarta</title>
   <link rel="icon" href="favicon.ico" />
 
@@ -18,26 +19,62 @@
   <meta property="og:url" content="https://cctvjogja.pages.dev/" />
 
   <style>
-    /* === ROOT & RESET === */
+      /* =====================
+       BASE STYLE
+    ===================== */
     :root {
-      --bg:         #0b0b0b;
-      --card:       #151515;
-      --card-hover: #1f1f1f;
-      --border:     #222;
-      --text:       #ffffff;
-      --muted:      #9a9a9a;
-      --badge:      #2a2a2a;
+      --bg:        #0f1419;
+      --surface:   #171e27;
+      --surface-2: #202a36;
+      --border:    #2b3644;
+      --text:      #f2f5f8;
+      --muted:     #a3b0be;
+      --accent:    #e3b55f;
+      --accent-ink:#1d1403;
+      --ok:        #34d399;
+      --bad:       #ef4444;
+      --shadow:    0 6px 24px rgba(0, 0, 0, .35);
+      color-scheme: dark;
     }
 
-    * {
-      box-sizing: border-box;
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg:        #f6f4ef;
+        --surface:   #ffffff;
+        --surface-2: #efebe2;
+        --border:    #ddd7ca;
+        --text:      #1c1917;
+        --muted:     #5b564d;
+        --accent:    #8f5f06;
+        --accent-ink:#ffffff;
+        --ok:        #059669;
+        --bad:       #dc2626;
+        --shadow:    0 6px 20px rgba(60, 40, 0, .10);
+        color-scheme: light;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html { font-size: 17px; -webkit-text-size-adjust: 100%; }
+
+    a { color: inherit; }
+    button { font: inherit; }
+
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
     }
 
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -46,113 +83,141 @@
     /* === LAYOUT === */
     .container {
       width: 100%;
-      max-width: 720px;
-      padding: 20px;
+      max-width: 820px;
+      padding: 28px 16px 40px;
     }
 
     h1 {
       text-align: center;
-      margin: 10px 0 6px;
-      font-size: 22px;
+      margin: 8px 0 8px;
+      font-size: clamp(1.8rem, 6vw, 2.5rem);
+      line-height: 1.15;
+      letter-spacing: -.01em;
+      text-wrap: balance;
     }
 
     .subtitle {
       text-align: center;
-      font-size: 14px;
+      font-size: 1.08rem;
       color: var(--muted);
       margin-bottom: 28px;
     }
 
     /* === REGION === */
     .region-row {
-      margin-bottom: 30px;
+      margin-bottom: 18px;
+      padding: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
     }
 
     .region-title {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 12px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 14px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
     /* === GRID === */
     .row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      gap: 12px;
     }
 
     /* === CARD === */
     .card {
+      position: relative;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      background: var(--card);
+      min-height: 68px;
+      padding: 12px 46px 12px 16px;
+      background: var(--surface-2);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 16px;
+      border-radius: 14px;
       text-decoration: none;
       color: var(--text);
-      transition: background 0.2s, transform 0.1s;
+      transition: border-color 0.15s, transform 0.1s;
     }
 
-    .card:hover  { background: var(--card-hover); }
-    .card:active { transform: scale(0.99); }
+    .card::after {
+      content: "\203A";
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-52%);
+      font-size: 1.9rem;
+      line-height: 1;
+      color: var(--accent);
+    }
+
+    .card:hover  { border-color: var(--accent); }
+    .card:active { transform: scale(0.985); }
 
     .card.disabled {
-      opacity: 0.45;
+      opacity: 0.55;
+      border-style: dashed;
       cursor: not-allowed;
     }
+    .card.disabled::after { content: none; }
+    .card.disabled:hover  { border-color: var(--border); }
+    .card.disabled:active { transform: none; }
 
     .left {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
       width: 100%;
+      min-width: 0;
     }
 
     .region {
-      font-weight: 600;
-      font-size: 15px;
+      font-weight: 700;
+      font-size: 1.08rem;
     }
 
     .badge {
-      margin-left: auto;
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: var(--badge);
-      color: #ddd;
-      white-space: nowrap;
+      margin-left: 0;
+      font-size: .85rem;
+      color: var(--muted);
+      overflow-wrap: anywhere;
     }
 
     /* === FOOTER === */
     .footer {
-      margin-top: 40px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
       text-align: center;
-      font-size: 12px;
-      color: #555;
+      font-size: .92rem;
+      color: var(--muted);
     }
 
     .footer a {
-      color: #777;
+      color: var(--text);
       text-decoration: none;
-      margin: 0 6px;
+      font-weight: 600;
+      padding: 8px 6px;
+      margin: 0;
+      border-radius: 10px;
     }
 
-    .footer a:hover {
-      color: #aaa;
-    }
+    .footer a:hover { background: var(--surface); }
 
     .footer-links {
-      margin-bottom: 24px;
+      margin-bottom: 18px;
+      line-height: 2.4;
     }
 
     .footer-divider {
-      width: 40px;
-      height: 1px;
-      background: #1e1e1e;
+      width: 48px;
+      height: 2px;
+      background: var(--border);
       margin: 0 auto 20px;
     }
 
@@ -160,51 +225,44 @@
     .vc-bar {
       display: inline-flex;
       align-items: center;
-      background: var(--card);
-      border: 1px solid #2a2a2a;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 999px;
-      padding: 5px 4px;
       margin-bottom: 14px;
-      font-size: 12px;
-      color: #777;
+      font-size: .9rem;
+      color: var(--muted);
     }
 
     .vc-seg {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 0 12px;
+      gap: 7px;
+      padding: 7px 16px;
     }
 
-    .vc-seg + .vc-seg {
-      border-left: 1px solid #2a2a2a;
-    }
+    .vc-seg + .vc-seg { border-left: 1px solid var(--border); }
+
+    .vc-seg svg { stroke: currentColor; }
 
     .vc-num {
-      font-weight: 600;
-      color: #ccc;
-      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
     }
 
     .vc-dot {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: #4ade80;
+      background: var(--ok);
       flex-shrink: 0;
-      animation: vc-blink 2s ease-in-out infinite;
-    }
-
-    @keyframes vc-blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
+      animation: pulse 2s ease-in-out infinite;
     }
 
     /* === MOBILE === */
     @media (max-width: 640px) {
-      .container { padding: 16px; }
-      .row       { grid-template-columns: 1fr; gap: 18px; }
-      .card      { padding: 16px; }
+      .container { padding: 20px 14px 32px; }
+      .region-row { padding: 16px; }
+      .row { grid-template-columns: 1fr; gap: 10px; }
     }
   </style>
 </head>
@@ -337,7 +395,7 @@
         </div>
       </div>
 
-      <div>1 november 2026</div>
+      <div>Terakhir update: 1 November 2026</div>
     </div>
 
   </div>
@@ -348,7 +406,7 @@
     import { getDatabase, ref, set, onValue, onDisconnect }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    /* === Firebase === */
+    /* === FIREBASE === */
     const app = initializeApp({
       apiKey:            "AIzaSyDgu5O5NIh99u3Lr7OXZU2IM-Uu75vvVBQ",
       authDomain:        "cctvjogja-1c5a8.firebaseapp.com",
@@ -360,7 +418,7 @@
     });
     const db = getDatabase(app);
 
-    /* === Total pengunjung === */
+    /* === TOTAL === */
     const elTotal  = document.getElementById("vc-total");
     const elOnline = document.getElementById("vc-online");
 
@@ -372,7 +430,7 @@
       .then(d => { elTotal.textContent = Number(d.value).toLocaleString("id-ID"); })
       .catch(() => { elTotal.textContent = "—"; });
 
-    /* === Online tracker === */
+    /* === ONLINE === */
     const uid     = sessionStorage.getItem("vc_uid") || Math.random().toString(36).slice(2);
     sessionStorage.setItem("vc_uid", uid);
 
