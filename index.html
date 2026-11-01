@@ -337,7 +337,7 @@
         </div>
       </div>
 
-      <div>21 oktober 2026</div>
+      <div>1 november 2026</div>
     </div>
 
   </div>
@@ -360,7 +360,7 @@
     });
     const db = getDatabase(app);
 
-    /* === Total pengunjung (CountAPI) === */
+    /* === Total pengunjung === */
     const elTotal  = document.getElementById("vc-total");
     const elOnline = document.getElementById("vc-online");
 
@@ -372,7 +372,7 @@
       .then(d => { elTotal.textContent = Number(d.value).toLocaleString("id-ID"); })
       .catch(() => { elTotal.textContent = "—"; });
 
-    /* === Online tracker (Firebase) === */
+    /* === Online tracker === */
     const uid     = sessionStorage.getItem("vc_uid") || Math.random().toString(36).slice(2);
     sessionStorage.setItem("vc_uid", uid);
 
