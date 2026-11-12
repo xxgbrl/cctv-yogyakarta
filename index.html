@@ -19,7 +19,7 @@
   <meta property="og:url" content="https://cctvjogja.pages.dev/" />
 
   <style>
-      /* =====================
+    /* =====================
        BASE STYLE
     ===================== */
     :root {
@@ -187,6 +187,29 @@
       color: var(--muted);
       overflow-wrap: anywhere;
     }
+
+    .badge.checking { animation: pulse 1.4s ease-in-out infinite; }
+
+    .badge.ok,
+    .badge.off {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .badge.ok::before,
+    .badge.off::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .badge.ok::before  { background: var(--ok); }
+    .badge.off::before { background: var(--bad); }
 
     /* === FOOTER === */
     .footer {
@@ -447,5 +470,130 @@
     });
   </script>
   
+  <script>
+  (() => {
+    const CACHE_KEY   = "cctv-online";
+    const TTL         = 30 * 1000;
+    const CONCURRENCY = 15;
+    const TIMEOUT     = 8000;
+    const GET_TIMEOUT = 15000;
+
+    const cards = [...document.querySelectorAll("a.card[href]")].map(a => {
+      const badge = a.querySelector(".badge");
+      return {
+        key: a.getAttribute("href"),
+        url: new URL(a.getAttribute("href"), location.href).href,
+        badge,
+        domain: badge.textContent.trim()
+      };
+    });
+
+    const loadCache = () => { try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch { return {}; } };
+    const saveCache = c => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch {} };
+
+    function show(c, text, cls) {
+      c.badge.textContent = text;
+      c.badge.className = "badge" + (cls ? " " + cls : "");
+      c.badge.title = c.domain;
+    }
+    const showCount = (c, n) => show(c, n + " kamera online", n > 0 ? "ok" : "off");
+
+    async function probe(url, method, timeout) {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), timeout);
+      try {
+        const res = await fetch(url, { method, cache: "no-store", signal: ctl.signal });
+        if (method === "GET" && res.body) res.body.cancel().catch(() => {});
+        return res.ok;
+      } catch {
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    const hostStat = {};
+
+    async function head(url) {
+      const host = new URL(url).host;
+      const st = hostStat[host] || (hostStat[host] = { headOk: 0, headFail: 0 });
+      const skipHead = st.headOk === 0 && st.headFail >= 5;
+      if (!skipHead) {
+        if (await probe(url, "HEAD", TIMEOUT)) { st.headOk++; return true; }
+        st.headFail++;
+        if (st.headOk > 0) return false;
+      }
+      return probe(url, "GET", GET_TIMEOUT);
+    }
+
+    async function getCameras(c) {
+      const res = await fetch(c.url);
+      if (!res.ok) throw new Error("gagal");
+      const html = await res.text();
+      return [...new Set(html.match(/https?:\/\/[^\s"'`<>\\]+\.m3u8[^\s"'`<>\\]*/g) || [])];
+    }
+
+    let running = false;
+
+    async function run(force) {
+      if (running) return;
+      running = true;
+      try {
+        const cache = loadCache();
+        const now = Date.now();
+        const todo = [];
+
+        cards.forEach(c => {
+          const hit = cache[c.key];
+          if (!force && hit && now - hit.t < TTL) {
+            showCount(c, hit.n);
+          } else {
+            if (!c.badge.classList.contains("ok") && !c.badge.classList.contains("off")) {
+              show(c, "Mengecek kamera…", "checking");
+            }
+            todo.push(c);
+          }
+        });
+        if (!todo.length) return;
+
+        const lists = await Promise.all(
+          todo.map(c => getCameras(c).then(l => ({ c, l }), () => ({ c, l: null })))
+        );
+
+        const jobs = [];
+        const state = new Map();
+        lists.forEach(({ c, l }) => {
+          if (!l || !l.length) {
+            if (c.badge.classList.contains("checking")) show(c, c.domain);
+            return;
+          }
+          state.set(c, { left: l.length, on: 0 });
+          l.forEach(u => jobs.push({ c, u }));
+        });
+
+        let i = 0;
+        async function worker() {
+          while (i < jobs.length) {
+            const { c, u } = jobs[i++];
+            const ok = await head(u);
+            const s = state.get(c);
+            if (ok) s.on++;
+            if (--s.left === 0) {
+              showCount(c, s.on);
+              cache[c.key] = { n: s.on, t: Date.now() };
+              saveCache(cache);
+            }
+          }
+        }
+        await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+      } finally {
+        running = false;
+      }
+    }
+
+    run(false);
+    setInterval(() => { if (!document.hidden) run(true); }, TTL);
+  })();
+  </script>
 </body>
 </html>
