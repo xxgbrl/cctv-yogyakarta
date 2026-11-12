@@ -460,7 +460,7 @@
     const userRef = ref(db, "online/" + uid);
     set(userRef, { t: Date.now() });
     onDisconnect(userRef).remove();
-    setInterval(() => set(userRef, { t: Date.now() }), 15000);
+    setInterval(() => set(userRef, { t: Date.now() }), 20000);
 
     onValue(ref(db, "online"), snap => {
       const now   = Date.now();
@@ -474,9 +474,9 @@
   (() => {
     const CACHE_KEY   = "cctv-online";
     const TTL         = 30 * 1000;
-    const CONCURRENCY = 15;
-    const TIMEOUT     = 8000;
-    const GET_TIMEOUT = 15000;
+    const CONCURRENCY = 20;
+    const TIMEOUT     = 15000;
+    const GET_TIMEOUT = 20000;
 
     const cards = [...document.querySelectorAll("a.card[href]")].map(a => {
       const badge = a.querySelector(".badge");
