@@ -3,6 +3,7 @@
 Platform sederhana untuk memantau kamera CCTV publik di seluruh wilayah **Daerah Istimewa Yogyakarta** secara real-time.
 
 🌐 **Live site:**
+- [cctv.zone.id](https://cctv.zone.id)
 - [xxgbrl.github.io/cctv-yogyakarta](https://xxgbrl.github.io/cctv-yogyakarta)
 - [cctvjogja.pages.dev](https://cctvjogja.pages.dev)
 - [cctvjogja.netlify.app](https://cctvjogja.netlify.app)
@@ -26,6 +27,13 @@ Platform sederhana untuk memantau kamera CCTV publik di seluruh wilayah **Daerah
 ```
 cctv-yogyakarta/
 ├── index.html              # Halaman utama (pemilihan wilayah)
+├── peta/                   # Peta CCTV semua wilayah (Leaflet)
+│   ├── index.html
+│   ├── prov.json           # Data kamera (group per kamera)
+│   ├── bantul.json         # Kabupaten Bantul
+│   ├── kota.json           # Kota Yogyakarta
+│   ├── gunkid.json         # Kabupaten Gunungkidul
+│   └── pin.png             # Ikon pin kamera
 ├── jogjakota/              # CCTV Kota Yogyakarta - Server 1
 ├── jogjakota2/             # CCTV Kota Yogyakarta - Server 2
 ├── bantul/                 # CCTV Kabupaten Bantul - Server 1
@@ -49,6 +57,7 @@ cctv-yogyakarta/
 
 - 🎥 Streaming CCTV publik real-time via HLS (m3u8)
 - 🔍 Pencarian kamera per wilayah
+- 🗺️ Peta interaktif semua kamera, bisa difilter per grup
 - 📱 Responsif — mobile & desktop friendly
 - ⚡ Ringan, tanpa framework, pure HTML/CSS/JS
 - 🌙 Dark mode by default

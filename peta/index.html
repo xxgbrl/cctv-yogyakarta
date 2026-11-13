@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+
+<title>Peta CCTV – LIVE CCTV Yogyakarta</title>
+<link rel="icon" href="../favicon.ico" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="canonical" href="https://cctvjogja.pages.dev/peta/" />
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<style>
+  :root {
+    --bg: #f4f6f8; --surface: #ffffff; --surface-2: #eef1f5;
+    --border: #d5dbe3; --text: #1b2430; --muted: #5d6b7a;
+    --accent: #d99a1e; --ok: #16a34a; --bad: #dc2626;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  #map { position: absolute; inset: 0; background: #e5e9ee; }
+
+  .leaflet-container { background: #e5e9ee; font-family: inherit; }
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 28px rgba(15,23,42,.18);
+  }
+  .leaflet-popup-content { margin: 0; width: 820px !important; }
+  
+  .leaflet-popup-close-button { display: none !important; }
+
+  .leaflet-bottom.leaflet-right .leaflet-control-zoom { margin-bottom: 20px; margin-right: 20px; }
+  .leaflet-control-zoom a {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+  .leaflet-control-zoom a:hover { background: var(--surface-2) !important; }
+
+  /* saat popup di-zoom/digeser: sembunyikan segitiga & latar bawaan Leaflet supaya tidak tembus ke popup */
+  .leaflet-popup.is-zoomed .leaflet-popup-tip-container { display: none; }
+  .leaflet-popup.is-zoomed .leaflet-popup-content-wrapper {
+    background: transparent !important; box-shadow: none !important; border-color: transparent !important;
+  }
+  .leaflet-popup.is-zoomed .popup { box-shadow: 0 8px 28px rgba(0,0,0,.28); }
+
+  .popup {
+    display: flex; flex-direction: column;
+    background: var(--surface); border-radius: 12px; overflow: hidden;
+    transform-origin: 50% 100%;
+  }
+  
+  .popup-head {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  
+  .popup-title {
+    flex: 1;
+    font-size: .92rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+    word-break: break-word;
+    padding: 0 4px; 
+  }
+
+  .popup-btn {
+    flex: none;
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1rem; line-height: 1;
+    transition: background .15s, border-color .15s, transform .3s;
+  }
+  .popup-btn:hover { background: var(--surface); border-color: var(--accent); }
+  .popup-btn.close:hover { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .popup-btn.back { border-color: transparent; background: transparent; }
+  .popup-btn.back:hover { background: var(--surface-2); border-color: var(--border); }
+  .popup-btn.spin svg { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .popup-body {
+    aspect-ratio: 16/9; background: #000; position: relative;
+  }
+  .popup-body video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+
+  .popup-select {
+    display: flex; flex-direction: column; padding: 16px; gap: 10px;
+    aspect-ratio: 16/9; box-sizing: border-box;
+    background: var(--bg);
+    justify-content: center;
+    overflow-y: auto;
+  }
+  .popup-select-btn {
+    position: relative;
+    width: 100%; padding: 16px 110px;
+    flex: none;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text);
+    font: inherit; font-size: 1rem; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .2s, border-color .2s;
+  }
+  .popup-select-btn:hover { background: var(--surface); border-color: var(--accent); }
+
+  .cam-status {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .78rem; font-weight: 600; color: var(--muted);
+  }
+  .cam-status-dot {
+    width: 9px; height: 9px; border-radius: 50%; background: #9aa5b1;
+    flex: none;
+  }
+  .cam-status.unknown .cam-status-dot { animation: pinPulse 1.4s ease-in-out infinite; }
+  .cam-status.online  { color: var(--ok); }
+  .cam-status.online  .cam-status-dot { background: var(--ok);  box-shadow: 0 0 0 3px rgba(22,163,74,.2); }
+  .cam-status.offline { color: var(--bad); }
+  .cam-status.offline .cam-status-dot { background: var(--bad); box-shadow: 0 0 0 3px rgba(220,38,38,.2); }
+
+  .popup-error {
+    position: absolute; inset: 0;
+    background: rgba(220, 38, 38, .92);
+    color: #fff;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 16px; text-align: center;
+    font-size: 1.1rem; font-weight: 700;
+  }
+  .popup-error.show { display: flex; }
+
+  .toast {
+    position: fixed; z-index: 2000;
+    left: 50%; top: 84px; transform: translateX(-50%) translateY(-10px);
+    max-width: calc(100% - 32px);
+    padding: 12px 18px; border-radius: 12px;
+    background: var(--bad); color: #fff;
+    font-size: .88rem; font-weight: 600;
+    box-shadow: 0 10px 30px rgba(15,23,42,.25);
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @keyframes pinPulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  @media (prefers-reduced-motion: reduce) {
+    .cam-status.unknown .cam-status-dot, .popup-btn.spin svg { animation: none; }
+  }
+
+  .topbar {
+    position: absolute; z-index: 1000; top: 12px; left: 12px; right: 12px;
+    display: flex; gap: 8px; align-items: stretch;
+  }
+  .search-wrap,
+  .group-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 46px;
+  }
+  .search-wrap { position: relative; }
+  .search-wrap input {
+    width: 100%; height: 100%; padding: 0 44px 0 14px;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font: inherit; outline: none;
+    box-shadow: 0 6px 20px rgba(15,23,42,.12);
+  }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-wrap input:focus { border-color: var(--accent); }
+
+  #clearSearch {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 34px; height: 34px; border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text);
+    cursor: pointer; display: none; align-items: center; justify-content: center;
+    font-size: 1rem; line-height: 1;
+  }
+  #clearSearch:hover { background: var(--bad); border-color: var(--bad); color: #fff; }
+  #clearSearch.show { display: inline-flex; }
+
+  .group-wrap { position: relative; }
+  #groupBtn {
+    width: 100%; height: 100%; padding: 0 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    font: inherit; outline: none; cursor: pointer; text-align: left;
+    box-shadow: 0 6px 20px rgba(15,23,42,.12);
+  }
+  #groupBtn:focus, #groupBtn[aria-expanded="true"] { border-color: var(--accent); }
+  #groupBtn:disabled { cursor: default; opacity: .7; }
+  #groupBtn svg { flex: none; color: var(--muted); }
+  #groupLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #groupList {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1100;
+    margin: 0; padding: 0; list-style: none; box-sizing: border-box;
+    max-height: 222px;
+    overflow-y: auto; overscroll-behavior: contain;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 6px 20px rgba(15,23,42,.12);
+  }
+  #groupList[hidden] { display: none; }
+  #groupList li {
+    height: 44px; box-sizing: border-box; padding: 0 14px;
+    display: flex; align-items: center; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #groupList li:hover { background: var(--surface-2); }
+  #groupList li.selected { color: var(--accent); font-weight: 600; background: var(--surface-2); }
+
+  .home-btn {
+    position: absolute; z-index: 1000; left: 20px; bottom: 20px;
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 44px; padding: 0 16px; box-sizing: border-box;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    font: inherit; font-size: .9rem; font-weight: 600; text-decoration: none;
+    box-shadow: 0 6px 20px rgba(15,23,42,.12);
+  }
+  .home-btn:hover, .home-btn:focus-visible { border-color: var(--accent); outline: none; }
+  .home-btn svg { flex: none; }
+
+  .banner {
+    position: absolute; z-index: 1000; top: 70px; left: 12px; right: 12px;
+    padding: 12px 16px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: 0 6px 20px rgba(15,23,42,.12);
+    font-size: .9rem; color: var(--muted);
+    text-align: center;
+  }
+  .banner.error { color: var(--bad); border-color: var(--bad); }
+  .banner[hidden] { display: none; }
+
+  @media (max-width: 700px) {
+    .leaflet-popup-content { width: 94vw !important; }
+    .popup-title { font-size: .85rem; }
+    .popup-select-btn { padding: 16px 96px 16px 16px; }
+    .topbar { flex-wrap: wrap; }
+    .search-wrap,
+    .group-wrap { flex: 1 1 100%; height: 42px; }
+    .home-btn { left: 16px; bottom: 16px; }
+    .banner { top: 118px; }
+    .toast { top: 132px; }
+    .leaflet-bottom.leaflet-right .leaflet-control-zoom { margin-bottom: 16px; margin-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="search-wrap">
+    <input id="searchBox" type="text" placeholder="🔍 Cari kamera..." disabled />
+    <button id="clearSearch" type="button" title="Clear" aria-label="Clear search">✖</button>
+  </div>
+  <div class="group-wrap" id="groupWrap">
+    <button id="groupBtn" type="button" disabled aria-haspopup="listbox" aria-expanded="false" aria-label="Pilih group">
+      <span id="groupLabel">Semua group</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <ul id="groupList" role="listbox" hidden></ul>
+    <select id="sortGroup" hidden disabled aria-label="Group">
+      <option value="">Semua group</option>
+    </select>
+  </div>
+</div>
+
+<div id="banner" class="banner">Memuat data kamera...</div>
+
+<div id="toast" class="toast" role="alert"></div>
+
+<a class="home-btn" href="../" aria-label="Kembali ke beranda">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  Kembali ke beranda
+</a>
+
+<div id="map"></div>
+
+<script>
+const CARTO_KEY = 'cb1_2ez2_4_8084fe561ff7fa873826fc1f';
+
+const map = L.map('map', {
+  center: [-7.7956, 110.3695],
+  zoom: 12,
+  zoomControl: false
+});
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+const cartoAttr =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
+  '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+const cartoUrl = style =>
+  `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png${CARTO_KEY ? '?key=' + CARTO_KEY : ''}`;
+
+L.tileLayer(cartoUrl('light_all'), {
+  subdomains: 'abcd', maxZoom: 20, attribution: cartoAttr
+}).addTo(map);
+
+const markers = new Map();
+const hlsInstances = new Map();
+const urlStatus = new Map();
+const retryState = new Map();
+let cameras = [];
+let dataLoaded = false;
+let mapFitted = false;
+
+const PIN_SRC = 'pin.png';
+const PIN_H = 25;
+const makePinIcon = w => L.icon({
+  iconUrl: PIN_SRC,
+  iconSize: [w, PIN_H],
+  iconAnchor: [w / 2, PIN_H],
+  popupAnchor: [0, -PIN_H + 4]
+});
+let pinIcon = makePinIcon(Math.round(PIN_H * 0.75));
+const pinReady = new Promise(resolve => {
+  const img = new Image();
+  img.onload = () => {
+    if (img.naturalWidth && img.naturalHeight) {
+      pinIcon = makePinIcon(Math.round(PIN_H * img.naturalWidth / img.naturalHeight));
+    }
+    resolve();
+  };
+  img.onerror = resolve;
+  img.src = PIN_SRC;
+});
+
+const STATUS_TIMEOUT = 15000;
+const STATUS_INTERVAL = 30 * 1000;
+
+const searchBox  = document.getElementById('searchBox');
+const clearBtn   = document.getElementById('clearSearch');
+const sortGroup  = document.getElementById('sortGroup');
+const groupBtn   = document.getElementById('groupBtn');
+const groupLabel = document.getElementById('groupLabel');
+const groupList  = document.getElementById('groupList');
+const banner     = document.getElementById('banner');
+const toastEl    = document.getElementById('toast');
+
+function showBanner(msg, isError) {
+  banner.hidden = false;
+  banner.textContent = msg;
+  banner.classList.toggle('error', !!isError);
+}
+function hideBanner() { banner.hidden = true; }
+
+let toastTimer = null;
+function showToast(msg, ms = 3500) {
+  clearTimeout(toastTimer);
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function fitToCameras(list) {
+  if (!list || !list.length) return;
+  if (list.length === 1) {
+    map.setView([list[0].lat, list[0].lng], 16, { animate: true });
+    return;
+  }
+  const bounds = L.latLngBounds();
+  list.forEach(cam => bounds.extend([cam.lat, cam.lng]));
+  map.fitBounds(bounds.pad(0.2), { maxZoom: 16, animate: true });
+}
+
+function centerPopup(marker) {
+  const popup = marker.getPopup();
+  if (!popup || !popup.isOpen()) return;
+
+  const popupEl = popup.getElement();
+  if (!popupEl) return;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const popupRect = popupEl.getBoundingClientRect();
+      const mapRect   = map.getContainer().getBoundingClientRect();
+
+      const popupCenterX = popupRect.left + popupRect.width  / 2 - mapRect.left;
+      const popupCenterY = popupRect.top  + popupRect.height / 2 - mapRect.top;
+
+      const targetX = mapRect.width  / 2;
+      const targetY = mapRect.height / 2;
+
+      const dx = popupCenterX - targetX;
+      const dy = popupCenterY - targetY;
+
+      const centerLatLng = map.containerPointToLatLng([targetX + dx, targetY + dy]);
+      map.panTo(centerLatLng, { animate: true });
+    });
+  });
+}
+
+function camUrls(cam) {
+  const out = [cam.url];
+  Object.keys(cam)
+    .filter(k => /^url\d+$/.test(k))
+    .sort((a, b) => parseInt(a.slice(3), 10) - parseInt(b.slice(3), 10))
+    .forEach(k => { if (cam[k]) out.push(cam[k]); });
+  return out;
+}
+
+async function getOnce(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), STATUS_TIMEOUT);
+  try {
+    const res = await fetch(url, { method: 'GET', cache: 'no-store', signal: ctrl.signal });
+    try { res.body && res.body.cancel(); } catch (_) {}
+    return res.ok;
+  } catch { return false; }
+  finally { clearTimeout(t); }
+}
+
+async function checkStatus(url, method = 'HEAD') {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), STATUS_TIMEOUT);
+  try {
+    if (method === 'GET') {
+      clearTimeout(t);
+      for (let i = 0; i < 3; i++) {
+        if (await getOnce(url)) return true;
+        if (i < 2) await new Promise(r => setTimeout(r, 1500));
+      }
+      return false;
+    }
+    let res = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: ctrl.signal });
+    if (res.status === 404) return await getOnce(url);
+    if (res.status === 405 || res.status === 403 || res.status === 501) {
+      res = await fetch(url, {
+        method: 'GET', cache: 'no-store', signal: ctrl.signal,
+        headers: { Range: 'bytes=0-0' }
+      });
+    }
+    return res.ok || res.status === 206;
+  } catch { return false; }
+  finally { clearTimeout(t); }
+}
+
+const STATUS_LABEL = { online: 'Online', offline: 'Offline', unknown: 'Mengecek…' };
+
+function refreshStatusBadges() {
+  document.querySelectorAll('.cam-status[data-url]').forEach(el => {
+    const st = urlStatus.get(el.dataset.url) || 'unknown';
+    el.className = 'cam-status ' + st;
+    const txt = el.querySelector('.cam-status-text');
+    if (txt) txt.textContent = STATUS_LABEL[st];
+  });
+}
+
+function applyUrlStatus(url, online) {
+  urlStatus.set(url, online ? 'online' : 'offline');
+  refreshStatusBadges();
+}
+
+async function checkAllStatuses() {
+  const methodByUrl = new Map();
+  cameras.forEach(cam => camUrls(cam).forEach(u => {
+    const m = (cam.statusMethod === 'GET' || needsGet(u)) ? 'GET' : 'HEAD';
+    if (m === 'GET' || !methodByUrl.has(u)) methodByUrl.set(u, m);
+  }));
+  await Promise.all([...methodByUrl].map(async ([u, method]) => {
+    applyUrlStatus(u, await checkStatus(u, method));
+  }));
+}
+
+const SOURCES = [
+  { file: 'prov.json' },
+  { file: 'bantul.json', group: 'Kabupaten Bantul' },
+  { file: 'kota.json',   group: 'Kota Yogyakarta' },
+  { file: 'gunkid.json', group: 'Kabupaten Gunungkidul', statusMethod: 'GET' }
+];
+
+const GET_HOSTS = ['stream.gunungkidulkab.go.id'];
+function needsGet(url) {
+  try { return GET_HOSTS.includes(new URL(url).hostname); } catch (_) { return false; }
+}
+
+function parseCameraText(text) {
+  try { return JSON.parse(text); } catch (_) {  }
+  const cleaned = text.trim()
+    .replace(/^(?:export\s+default\s+|(?:const|let|var)\s+\w+\s*=\s*)/, '')
+    .replace(/;\s*$/, '');
+  return new Function('None', 'True', 'False', '"use strict"; return (' + cleaned + ');')(null, true, false);
+}
+
+function normalizeCam(c) {
+  const o = { ...c };
+  Object.keys(c).forEach(k => {
+    const m = /^link(\d*)$/.exec(k);
+    if (m && c[k] && !o['url' + m[1]]) o['url' + m[1]] = c[k];
+  });
+  return o;
+}
+
+async function loadSource(src) {
+  const res = await fetch(src.file, { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = parseCameraText(await res.text());
+  const arr = Array.isArray(data) ? data : (data && Array.isArray(data.cameras) ? data.cameras : null);
+  if (!arr) throw new Error('format tidak valid');
+
+  return arr.filter(Boolean).map(normalizeCam).filter(c =>
+    c.url &&
+    Number.isFinite(Number(c.lat)) &&
+    Number.isFinite(Number(c.lng))
+  ).map(c => ({
+    ...c,
+    lat: Number(c.lat),
+    lng: Number(c.lng),
+    alias: c.alias || c.name || 'CCTV',
+    group: src.group || c.group || 'Lainnya',
+    statusMethod: String(src.statusMethod || c.statusMethod || (needsGet(c.url) ? 'GET' : 'HEAD')).toUpperCase(),
+    slug:  c.slug || (src.file + ':' + (c.name || (String(c.lat) + ',' + String(c.lng))))
+  }));
+}
+
+async function loadCameras() {
+  showBanner('Memuat data kamera...');
+  try {
+    const results = await Promise.allSettled(SOURCES.map(loadSource));
+    const failed = [];
+    const seen = new Set();
+    cameras = [];
+
+    results.forEach((r, i) => {
+      if (r.status !== 'fulfilled') {
+        console.error('Gagal memuat ' + SOURCES[i].file + ':', r.reason);
+        failed.push(SOURCES[i].file);
+        return;
+      }
+      r.value.forEach(cam => {
+        let slug = cam.slug, n = 2;
+        while (seen.has(slug)) slug = cam.slug + '#' + (n++);
+        seen.add(slug);
+        cameras.push({ ...cam, slug });
+      });
+    });
+
+    if (!cameras.length) {
+      showBanner(failed.length
+        ? 'Gagal memuat: ' + failed.join(', ')
+        : 'Tidak ada kamera valid di file data', true);
+      return;
+    }
+
+    dataLoaded = true;
+    searchBox.disabled = false;
+    sortGroup.disabled = false;
+    groupBtn.disabled = false;
+    hideBanner();
+    if (failed.length) showToast('Gagal memuat: ' + failed.join(', '), 6000);
+
+    populateGroupOptions();
+    await pinReady;
+    applyFilterAndRender({ fit: true });
+
+    checkAllStatuses();
+    setInterval(checkAllStatuses, STATUS_INTERVAL);
+  } catch (err) {
+    console.error('Gagal memuat data kamera:', err);
+    showBanner('Gagal memuat data kamera: ' + err.message, true);
+  }
+}
+
+function populateGroupOptions() {
+  const groups = [...new Set(cameras.map(c => c.group).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'id'));
+
+  sortGroup.innerHTML = '';
+  const all = document.createElement('option');
+  all.value = '';
+  all.textContent = 'Semua group';
+  sortGroup.appendChild(all);
+
+  groups.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g;
+    opt.textContent = g;
+    sortGroup.appendChild(opt);
+  });
+
+  renderGroupList(groups);
+}
+
+function renderGroupList(groups) {
+  groupList.innerHTML = '';
+  ['', ...groups].forEach(g => {
+    const li = document.createElement('li');
+    li.setAttribute('role', 'option');
+    li.dataset.value = g;
+    li.textContent = g || 'Semua group';
+    groupList.appendChild(li);
+  });
+  syncGroupUI();
+}
+
+function syncGroupUI() {
+  const v = sortGroup.value;
+  groupLabel.textContent = v || 'Semua group';
+  groupList.querySelectorAll('li').forEach(li => {
+    const on = li.dataset.value === v;
+    li.classList.toggle('selected', on);
+    li.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+
+function openGroupList() {
+  groupList.hidden = false;
+  groupBtn.setAttribute('aria-expanded', 'true');
+  const sel = groupList.querySelector('li.selected');
+  groupList.scrollTop = sel ? sel.offsetTop : 0;
+}
+
+function closeGroupList() {
+  groupList.hidden = true;
+  groupBtn.setAttribute('aria-expanded', 'false');
+}
+
+groupBtn.addEventListener('click', () => {
+  if (groupList.hidden) openGroupList(); else closeGroupList();
+});
+
+groupList.addEventListener('click', e => {
+  const li = e.target.closest('li');
+  if (!li) return;
+  sortGroup.value = li.dataset.value;
+  syncGroupUI();
+  closeGroupList();
+  sortGroup.dispatchEvent(new Event('change'));
+});
+
+document.addEventListener('click', e => {
+  if (!groupList.hidden && !document.getElementById('groupWrap').contains(e.target)) closeGroupList();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !groupList.hidden) closeGroupList();
+});
+
+const ICON_RELOAD = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>`;
+const ICON_CLOSE  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+const ICON_BACK   = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
+
+function popupHtml(cam) {
+  const urls = camUrls(cam);
+
+  const selectHtml = `
+    <div class="popup-body" id="popup-selector">
+      <div class="popup-select">
+        ${urls.map((u, i) => {
+          const st = urlStatus.get(u) || 'unknown';
+          return `<button class="popup-select-btn" type="button" data-url="${escapeHtml(u)}">
+          <span class="popup-select-label">Kamera ${i + 1}</span>
+          <span class="cam-status ${st}" data-url="${escapeHtml(u)}"><span class="cam-status-dot"></span><span class="cam-status-text">${STATUS_LABEL[st]}</span></span>
+        </button>`;
+        }).join('\n        ')}
+      </div>
+    </div>
+  `;
+
+  const playerHtml = `
+    <div class="popup-body" id="popup-player" style="display:none;">
+      <video playsinline muted autoplay controls></video>
+      <div class="popup-error">
+        <div class="err-title">Kamera offline</div>
+      </div>
+    </div>
+  `;
+
+  return `
+    <div class="popup" data-slug="${escapeHtml(cam.slug)}">
+      <div class="popup-head">
+        <button class="popup-btn back" id="btn-left" type="button" title="Kembali" style="visibility:hidden;">
+          ${ICON_BACK}
+        </button>
+
+        <div class="popup-title">${escapeHtml(cam.alias)}</div>
+
+        <button class="popup-btn close" type="button" title="Tutup" aria-label="Tutup">${ICON_CLOSE}</button>
+      </div>
+      ${selectHtml}
+      ${playerHtml}
+    </div>`;
+}
+
+function stopStream(slug) {
+  const hls = hlsInstances.get(slug);
+  if (hls) { hls.destroy(); hlsInstances.delete(slug); }
+}
+
+function startStream(cam, popupEl, marker, targetUrl = cam.url, showBackBtn = false) {
+  stopStream(cam.slug);
+  if (retryState.has(cam.slug)) {
+    clearTimeout(retryState.get(cam.slug).timer);
+    retryState.delete(cam.slug);
+  }
+
+  const selector = popupEl.querySelector('#popup-selector');
+  const player   = popupEl.querySelector('#popup-player');
+  if (selector) selector.style.display = 'none';
+  if (player) player.style.display = 'block';
+
+  const errBox    = player.querySelector('.popup-error');
+  const errTitle  = player.querySelector('.err-title');
+  const closeBtn  = popupEl.querySelector('.popup-btn.close');
+  const leftBtn   = popupEl.querySelector('#btn-left');
+  
+  const videoEl = player.querySelector('video');
+  videoEl.style.display = 'block';
+
+  closeBtn.onclick = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    marker.closePopup();
+  };
+
+  const setLeftBtnReload = () => {
+    leftBtn.className = 'popup-btn reload';
+    leftBtn.innerHTML = ICON_RELOAD;
+    leftBtn.title = 'Reload stream';
+    leftBtn.style.visibility = 'visible';
+    leftBtn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const s = retryState.get(cam.slug);
+      if (s) { clearTimeout(s.timer); retryState.delete(cam.slug); }
+      startStream(cam, popupEl, marker, targetUrl, showBackBtn);
+    };
+  };
+
+  const setLeftBtnBack = () => {
+    leftBtn.className = 'popup-btn back';
+    leftBtn.innerHTML = ICON_BACK;
+    leftBtn.title = 'Kembali ke pilihan kamera';
+    leftBtn.style.visibility = 'visible';
+    
+    leftBtn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      stopStream(cam.slug);
+      const s = retryState.get(cam.slug);
+      if (s) { clearTimeout(s.timer); retryState.delete(cam.slug); }
+
+      const v = player.querySelector('video');
+      if (v) { 
+        v.pause(); 
+        v.removeAttribute('src'); 
+        try { v.load(); } catch(_) {} 
+      }
+
+      player.style.display = 'none';
+      if (selector) selector.style.display = '';
+
+      bindSelectorEvents(cam, popupEl, marker);
+    };
+  };
+
+  if (showBackBtn) setLeftBtnBack();
+  else setLeftBtnReload();
+
+  errBox.classList.remove('show');
+  leftBtn.classList.remove('spin');
+
+  const showError = (title) => {
+    errTitle.textContent = title;
+    errBox.classList.add('show');
+    leftBtn.classList.remove('spin');
+  };
+
+  let attempt = 0;
+  const maxAttempts = cam.statusMethod === 'GET' ? 4 : 1;
+
+  const tryPlay = () => {
+    attempt++;
+    leftBtn.classList.add('spin');
+    stopStream(cam.slug);
+
+    videoEl.removeAttribute('src');
+    try { videoEl.load(); } catch (_) {}
+
+    const state = { timer: null, attempt };
+    retryState.set(cam.slug, state);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        lowLatencyMode: true,
+        maxBufferLength: 10,
+        manifestLoadingTimeOut: 8000,
+        levelLoadingTimeOut: 8000,
+        manifestLoadingMaxRetry: 0,
+        levelLoadingMaxRetry: 0,
+        fragLoadingMaxRetry: 1
+      });
+      hlsInstances.set(cam.slug, hls);
+      hls.loadSource(targetUrl);
+      hls.attachMedia(videoEl);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        applyUrlStatus(targetUrl, true);
+        errBox.classList.remove('show');
+        leftBtn.classList.remove('spin');
+        videoEl.play().catch(() => {});
+        const s = retryState.get(cam.slug);
+        if (s) { clearTimeout(s.timer); retryState.delete(cam.slug); }
+      });
+
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (!data.fatal) return;
+        hls.destroy();
+        hlsInstances.delete(cam.slug);
+        handleFatal();
+      });
+    } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+      videoEl.src = targetUrl;
+      videoEl.play().then(() => {
+        applyUrlStatus(targetUrl, true);
+        errBox.classList.remove('show');
+        leftBtn.classList.remove('spin');
+        const s = retryState.get(cam.slug);
+        if (s) { clearTimeout(s.timer); retryState.delete(cam.slug); }
+      }).catch(() => handleFatal());
+    } else {
+      handleFatal();
+    }
+
+    function handleFatal() {
+      const st = retryState.get(cam.slug);
+      if (st) clearTimeout(st.timer);
+
+      if (attempt < maxAttempts) {
+        const timer = setTimeout(tryPlay, 1500);
+        retryState.set(cam.slug, { timer, attempt });
+        return;
+      }
+
+      retryState.delete(cam.slug);
+      applyUrlStatus(targetUrl, false);
+      showError('Kamera offline');
+    }
+  };
+
+  tryPlay();
+}
+
+function bindSelectorEvents(cam, popupEl, marker) {
+  const selectBtns = popupEl.querySelectorAll('.popup-select-btn');
+  const leftBtn = popupEl.querySelector('#btn-left');
+
+  if (leftBtn) leftBtn.style.visibility = 'hidden';
+
+  selectBtns.forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const url = btn.dataset.url;
+      startStream(cam, popupEl, marker, url, true);
+    };
+  });
+}
+
+function enablePopupPinch(popupEl) {
+  const wrapper = popupEl.closest('.leaflet-popup-content-wrapper');
+  if (!wrapper) return;
+  const root = popupEl.closest('.leaflet-popup');
+  if (root) root.classList.remove('is-zoomed');
+  const MIN = 0.6, MAX = 3;
+  let s = 1, tx = 0, ty = 0;
+  let mode = null, g = null, moved = false, lastTap = 0;
+
+  const apply = () => {
+    popupEl.style.transform = (s === 1 && !tx && !ty) ? '' : `translate(${tx}px, ${ty}px) scale(${s})`;
+    if (root) root.classList.toggle('is-zoomed', zoomed());
+  };
+  const reset = () => { s = 1; tx = 0; ty = 0; apply(); };
+  const origin = () => {
+    const r = wrapper.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.bottom };
+  };
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const mid  = t => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+  const zoomed = () => s !== 1 || tx !== 0 || ty !== 0;
+
+  const startPinch = t => { mode = 'pinch'; moved = true; g = { d: dist(t), m: mid(t), s, tx, ty, o: origin() }; };
+  const startPan = t => { mode = 'pan'; g = { x: t[0].clientX, y: t[0].clientY, tx, ty }; };
+
+  const canPan = e => {
+    if (!zoomed()) return false;
+    if (e.target.closest('button')) return false;
+    const v = popupEl.querySelector('#popup-player video');
+    if (v && e.target === v) {
+      const r = v.getBoundingClientRect();
+      if (e.touches[0].clientY > r.bottom - 60) return false;
+    }
+    return true;
+  };
+
+  popupEl.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) { startPinch(e.touches); e.preventDefault(); }
+    else if (e.touches.length === 1) {
+      moved = false;
+      if (canPan(e)) startPan(e.touches); else mode = null;
+    }
+  }, { passive: false });
+
+  popupEl.addEventListener('touchmove', e => {
+    if (!mode) return;
+    if (mode === 'pinch' && e.touches.length === 2) {
+      const ns = Math.min(MAX, Math.max(MIN, g.s * dist(e.touches) / g.d));
+      const m = mid(e.touches);
+      const k = ns / g.s;
+      tx = m.x - g.o.x - k * (g.m.x - g.o.x - g.tx);
+      ty = m.y - g.o.y - k * (g.m.y - g.o.y - g.ty);
+      s = ns;
+      apply();
+      e.preventDefault();
+    } else if (mode === 'pan' && e.touches.length === 1) {
+      tx = g.tx + e.touches[0].clientX - g.x;
+      ty = g.ty + e.touches[0].clientY - g.y;
+      moved = true;
+      apply();
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  const onEnd = e => {
+    if (e.touches.length === 0 && !moved && e.target.closest('.popup-title')) {
+      const now = Date.now();
+      if (now - lastTap < 300) { reset(); lastTap = 0; } else lastTap = now;
+    }
+    if (e.touches.length === 1 && zoomed()) startPan(e.touches);
+    else if (e.touches.length === 0) mode = null;
+  };
+  popupEl.addEventListener('touchend', onEnd);
+  popupEl.addEventListener('touchcancel', onEnd);
+}
+
+function buildMarker(cam) {
+  const marker = L.marker([cam.lat, cam.lng], { icon: pinIcon, title: cam.alias });
+  marker.bindPopup(() => popupHtml(cam), {
+    maxWidth: 820, minWidth: 300,
+    autoPanPadding: [20, 80], 
+    closeButton: false,
+    autoPan: false
+  });
+
+  marker.on('popupopen', (e) => {
+    const popupEl = e.popup.getElement().querySelector('.popup');
+    if (!popupEl) return;
+
+    L.DomEvent.disableClickPropagation(popupEl);
+    L.DomEvent.disableScrollPropagation(popupEl);
+
+    const leftBtn  = popupEl.querySelector('#btn-left');
+    const closeBtn = popupEl.querySelector('.popup-btn.close');
+
+    closeBtn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      marker.closePopup();
+    };
+
+    leftBtn.className = 'popup-btn back';
+    leftBtn.innerHTML = ICON_BACK;
+    leftBtn.title = 'Kembali';
+    leftBtn.style.visibility = 'hidden';
+    leftBtn.onclick = null;
+    bindSelectorEvents(cam, popupEl, marker);
+    refreshStatusBadges();
+    enablePopupPinch(popupEl);
+
+    centerPopup(marker);
+  });
+  
+  marker.on('popupclose', () => {
+    const s = retryState.get(cam.slug);
+    if (s) { clearTimeout(s.timer); retryState.delete(cam.slug); }
+    stopStream(cam.slug);
+  });
+
+  marker.addTo(map);
+
+  markers.set(cam.slug, { marker, cam });
+  return marker;
+}
+
+function renderAll(list) {
+  markers.forEach(({ marker }) => map.removeLayer(marker));
+  markers.clear();
+  retryState.forEach(s => clearTimeout(s.timer));
+  retryState.clear();
+  hlsInstances.forEach(h => h.destroy());
+  hlsInstances.clear();
+
+  if (!list.length) return;
+
+  list.forEach(cam => buildMarker(cam));
+}
+
+function applyFilterAndRender(opts = {}) {
+  if (!dataLoaded) return;
+  const q = searchBox.value.trim().toLowerCase();
+  const g = sortGroup.value;
+
+  const filtered = cameras.filter(c => {
+    const matchQ = !q
+      || (c.alias || '').toLowerCase().includes(q)
+      || (c.group || '').toLowerCase().includes(q);
+    const matchG = !g || c.group === g;
+    return matchQ && matchG;
+  });
+
+  filtered.sort((a, b) => {
+    const ga = a.group || '';
+    const gb = b.group || '';
+    if (ga !== gb) return ga.localeCompare(gb, 'id');
+    return (a.alias || '').localeCompare(b.alias || '', 'id');
+  });
+
+  renderAll(filtered);
+
+  if (opts.zoom && filtered.length) {
+    fitToCameras(filtered);
+  } else if (opts.fit && !mapFitted && filtered.length) {
+    fitToCameras(filtered);
+    mapFitted = true;
+  }
+
+  if (!filtered.length) {
+    showBanner('Tidak ada kamera yang cocok dengan filter.', false);
+  } else {
+    hideBanner();
+  }
+}
+
+let searchTimer = null;
+searchBox.addEventListener('input', () => {
+  clearBtn.classList.toggle('show', !!searchBox.value);
+  if (searchBox.value && sortGroup.value) { sortGroup.value = ''; syncGroupUI(); }
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => applyFilterAndRender({ zoom: true }), 250);
+});
+
+clearBtn.addEventListener('click', () => {
+  searchBox.value = '';
+  clearBtn.classList.remove('show');
+  applyFilterAndRender({ zoom: false });
+  searchBox.focus();
+});
+
+sortGroup.addEventListener('change', () => {
+  applyFilterAndRender({ zoom: true });
+});
+
+loadCameras();
+</script>
+
+</body>
+</html>

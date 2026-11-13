@@ -167,6 +167,20 @@
     .card.disabled:hover  { border-color: var(--border); }
     .card.disabled:active { transform: none; }
 
+    /* === CARD PETA === */
+    .row.single {
+      grid-template-columns: minmax(0, 420px);
+      justify-content: center;
+    }
+    .map-region .region-title { justify-content: center; }
+    .card.map-card {
+      justify-content: center;
+      text-align: center;
+      padding: 12px 16px;
+    }
+    .card.map-card::after { content: none; }
+    .card.map-card .left { align-items: center; }
+
     .left {
       display: flex;
       flex-direction: column;
@@ -391,6 +405,18 @@
       </div>
     </div>
 
+    <!-- PETA CCTV -->
+    <div class="region-row map-region">
+      <div class="row single">
+        <a href="peta/" class="card map-card">
+          <div class="left">
+            <div class="region">Peta CCTV</div>
+            <span class="badge">Lihat semua kamera dalam satu peta</span>
+          </div>
+        </a>
+      </div>
+    </div>
+
     <!-- FOOTER -->
     <div class="footer">
       <div class="footer-links">
@@ -478,7 +504,7 @@
     const TIMEOUT     = 15000;
     const GET_TIMEOUT = 20000;
 
-    const cards = [...document.querySelectorAll("a.card[href]")].map(a => {
+    const cards = [...document.querySelectorAll("a.card[href]:not(.map-card)")].map(a => {
       const badge = a.querySelector(".badge");
       return {
         key: a.getAttribute("href"),
